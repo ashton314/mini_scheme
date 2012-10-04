@@ -1,0 +1,113 @@
+* DEFINE
+(define foo 42)			; Defines a variable
+(define (add5 n) (+ 5 n))	; Defines a function
+
+** Notes:
+The expression:
+  (set! add5 (lambda (n) (+ 5 n)))
+
+Is equivalent to this expression:
+  (define (add5 n) (+ 5 n))
+
+I'm not sure if there is a difference. 
+Actually, I defined DEFINE by calling the Eval() subroutine I made for
+my micro lisp project. I transformed the expression into a SET! expression
+
+* SET!
+(set! foo 17)			; Sets a variable. Woot.
+
+** Notes:
+The <symbol>! is a common idiom for some destructive function called
+for its side-effects. E.g.: MAP!, REMOVE!, etc.
+
+* BEGIN
+(begin				; Basically, curly braces in Perl
+  (set! foo 12)
+  (write foo)
+  (set! foo (+ foo 19))
+  (write foo))
+
+** Notes:
+I used the BEGIN special form in my definition of LAMBDA. LAMBDA
+_must_ support a body of arguments.
+
+This /could/ be defined in terms of LAMBDA: you would have to switch
+the code for BEGIN into LAMBDA. Yet another thing you can do with a
+properly defined LAMBDA.
+
+* IF
+(if (= foo 42)			; Do I really need to explain?
+    (write "This is THE answer!!")
+    (begin
+      (write "I have no idea what this is.")
+      (write "You are kinda lame.")))
+
+** Notes:
+Takes at least two, but up to 3 arguments. If no third argument is
+supplied and the condition is false, NIL is returned.
+
+This _must_ be a special form. IF always evaluates the test. It waits
+to evaluate the second argument iff the test is true. It does not
+evaluate the third if the test succeeds. Similarly, if the test fails,
+the second argument _must_not_ be evaluated.
+
+* QUOTE
+(quote foo)			; Returns whatever is passed to it,
+				; WITHOUT EVALUATION!!
+** Notes:
+The short hand for this is the read-macro "'". Instead of saying:
+  (quote foo)
+
+You can say:
+  'foo
+
+We can add ' in with the reader. Do not worry about implementing the '
+form of QUOTE.
+
+* LAMBDA
+(set! foo (lambda (n) (+ 5 n)))		; Like sub {} in perl
+(foo 17)			; returns 22
+
+** Notes:
+This is used to implement lexical scope. You can redefine an
+expression like:
+  (let ((foo 42)
+        (zoop 16))
+    (+ (* foo zoop) (/ zoop foo)))
+
+Into something like:
+  ((lambda (foo zoop) (+ (* foo zoop) (/ zoop foo))) 42 16)
+
+This is rather elegant. Many things can be expressed with the LAMBDA
+structure (including recursion if the implementation language does not
+natively support it!!)
+
+* EQ
+(eq 'foo 'foo)
+>> T
+
+(eq foo 'zoop)
+>> T
+
+(set! foo 'zoop)		; Tests if two _pointers_ are the same
+
+* CONS
+(cons 'foo 'zoop)		; Returns a new CONS cell who's CAR
+>> (foo . zoop)			; points to the first element, and the
+				; CDR to the second.
+(cons 'foo '(zoop))
+>> (foo zoop)
+
+* CAR
+(car '((foo zoop) (narf quad) lectoblix)) ; Returns the CAR of its argument
+>> (foo zoop)
+
+(car (car '((foo zoop) (narf quad) lectoblix)))
+>> foo
+
+* CDR
+(cdr '(1 2 3 4 5))		; Returns the CDR of the list
+>> (2 3 4 5)
+
+(car (cdr '((foo zoop) (narf quad) lectoblix)))
+>> (narf quad)
