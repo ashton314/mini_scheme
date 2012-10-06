@@ -142,6 +142,8 @@ Takes a file handle and a character considered to be the "end of file"
 character. The EOF char defaults to ^D. For making your own REPL, try
 using "\n" as the EOF character.
 
+This returns an array ref.
+
 B<$scheme_stream> must be something produced by
 L</make_scheme_stream>. If it is `0' (or some other false value), the
 stream will default to B<STDIN>.
