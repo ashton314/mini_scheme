@@ -112,3 +112,51 @@ sub make_scheme_stream {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Reader -- A suite of functions to read LISP data
+
+=head1 SYNOPSIS
+
+   use Data::Dumper;
+   use Reader;
+
+   my $array_ref = Reader::scheme_read(\*STDIN, "\n");
+   print "LISP structure read in: " . Dumper($array_ref) . "\n";
+
+=head1 DESCRIPTION
+
+This is a collection of functions that allows you to read LISP like
+data from a Perl data stream.
+
+=head1 FUNCTIONS
+
+=over 4
+
+=item scheme_read($scheme_stream, $eof_char)
+
+Takes a file handle and a character considered to be the "end of file"
+character. The EOF char defaults to ^D. For making your own REPL, try
+using "\n" as the EOF character.
+
+B<$scheme_stream> must be something produced by
+L</make_scheme_stream>. If it is `0' (or some other false value), the
+stream will default to B<STDIN>.
+
+In the future, I might make this so that it will simply take a file
+handle as its argument.
+
+=item make_scheme_stream($fh)
+
+Given a file handle, this returns a stream that L</scheme_read> can
+use. B<IT IS VERY IMPORTANT THAT THIS FUNCTION BE USED!> This is
+required even when slurping from a file.
+
+=back
+
+=head1 AUTHOR
+
+Ashton Wiersdorf <ashton.wiersdorf@mailblock.net>
