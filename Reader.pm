@@ -2,6 +2,14 @@ package Reader;
 use strict;
 use warnings;
 
+sub import {
+    my $caller = caller;
+    no strict 'refs';
+    *{ $caller . '::' . $_ } = __PACKAGE__->can( $_ )
+      for qw(scheme_read scheme_read_delimited_list make_scheme_stream);
+    1;
+}
+
 our %READ_TABLE = (
 		   '(' =>
 		   sub {

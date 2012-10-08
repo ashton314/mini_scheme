@@ -2,10 +2,13 @@
 use strict;
 use warnings;
 
-use Data::Dumper;
+BEGIN {
+    push @INC, '..';
+}
 
-require '../Reader.pm';
+use Data::Dumper;
+use Reader;
 
 print "Expr: ";
-my $thing = Reader::scheme_read(0, "\n");
+my $thing = scheme_read(0, "\n");
 print "Thing: " . Dumper($thing) . "\n";
