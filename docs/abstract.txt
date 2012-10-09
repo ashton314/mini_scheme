@@ -1,0 +1,52 @@
+* Title
+
+Studying the effects of a syntactic analyzer on a Scheme program
+
+* Introduction
+
+In the MIT introductory book to computer programming, Structure and
+Interpretation of Computer Programs, the outline for a simple Scheme
+interpreter is given. In following sections, enhancements are made to
+this interpreter. One of the most radical changes to the interpreter
+is done by separating syntactic analysis of a Scheme expression from
+execution. According to the authors, this greatly improves execution
+times.
+
+The purpose of this experiment is to study the effects of a syntactic
+analyzer on run time. We believe that if a syntactic analyzer is used
+before evaluation of Scheme code, a great benifit in speed will be
+yielded.
+
+* Materials
+
+** 1 computer, running FreeBSD v8.2
+   The computer's name is Pinball.
+** MIT Scheme v9.0.1
+   This is for testing purposes.
+** Perl v5.14.1
+   This is what our programs will be written in.
+** Emacs v23.2.1
+   THE text editor that we use to write our programs.
+** Git v1.7.9.6
+   Version control system, a.k.a. "The stupid content tracker."
+
+* Methods
+
+Two versions of a simple Scheme interpreter will be written: one that
+uses the "traditional" method of execution, and a second that uses the
+syntactial analyzation techniques outlined in SICP. The programs will
+be written in Perl.
+
+A series of Scheme programs will be run. These programs will not only
+test the completeness of the Scheme interpreter, but also the speed at
+which the interpreters can execute code.
+
+Using various benchmarking methods, the speed at which the programs
+execute will be measured, recorded, and compared.
+
+* Data
+
+* Analysis/Results
+
+* Conclusion
+
