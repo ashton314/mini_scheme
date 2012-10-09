@@ -86,10 +86,10 @@ natively support it!!)
 (eq 'foo 'foo)
 >> T
 
+(set! foo 'zoop)		; Tests if two _pointers_ are the same
+
 (eq foo 'zoop)
 >> T
-
-(set! foo 'zoop)		; Tests if two _pointers_ are the same
 
 * CONS
 (cons 'foo 'zoop)		; Returns a new CONS cell who's CAR
