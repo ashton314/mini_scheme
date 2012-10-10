@@ -22,7 +22,7 @@ observed.
 ** 1 computer, running FreeBSD v8.2
 ** MIT Scheme v9.0.1
 ** Perl v5.14.1
-** Emacs v23.2.1
+** GNU Emacs v23.2.1
 ** Git v1.7.9.6
 ** 17 kg of bacon
 
@@ -30,28 +30,28 @@ observed.
 
 Two versions of a simple Scheme interpreter were written: one that
 used the "traditional" method of execution, and a second that used the
-syntactial analyzation techniques outlined in SICP. The programs were
+syntactical analyzation techniques outlined in SICP. The programs were
 be written in Perl.
 
 A series of Scheme programs were run. The programs were tested on a
 standardized implementation of Scheme (MIT Scheme) to ensure that the
 programs were "legal" (i.e. valid Scheme programs (we did not want our
-interpreters to execute "illigal" Scheme code.)) These programs not
+interpreters to execute "illegal" Scheme code.)) These programs not
 only tested the completeness of the Scheme interpreters, but also the
 speed at which the interpreters executed code.
 
 Using various benchmarking methods, the speed at which the programs
 execute were measured, recorded, and compared.
 
-Benchmarking was done in the following manner: several diffent blocks
-of code representing various aspects of a Scheme interpeter were
+Benchmarking was done in the following manner: several different blocks
+of code representing various aspects of a Scheme interpreter were
 chosen. Each block was executed one million times. (1,000,000) The
 time required to execute each block one million times was recorded.
 
 The "traditional" method of interpretation works as follows: The
 interpreter receives a Scheme expression. This expression is passed to
-the function EVAL along with an enviroment that the expression is to
-be evaluated within. (The enviroment defaults to a null value.) If the
+the function EVAL along with an environment that the expression is to
+be evaluated within. (The environment defaults to a null value.) If the
 expression fits into the category of special forms, (atomic, primitive
 forms that receive special treatment from the evaluator; all other
 functions can be built using these forms) EVAL will dispatch on the
@@ -64,10 +64,10 @@ the following procedure: Every time a new Scheme expression is
 encountered, it is passed to the function ANALYZE. This function
 dispatches on the type of expression passed to it (much like the EVAL
 function described in the previous paragraph) and returns a function
-that, when given the evaluation enviroment, returns the result of the
+that, when given the evaluation environment, returns the result of the
 expression. Thus, all EVAL must do is call the function returned by
 ANALYZE being called on the expression, with the evaluation
-enviroment.
+environment.
 
 * Data
 
