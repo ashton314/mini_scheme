@@ -2,14 +2,19 @@
 use strict;
 use warnings;
 
+BEGIN {
+    push @INC, '..';
+}
+
 use Data::Dumper;
+use Reader;
 
-require '../Reader.pm';
-
-open my $fh, '<', 'data_file1.lisp';
+print "File: ";
+chomp(my $file = <STDIN>);
+open my $fh, '<', $file;
 my $good = 1;
 while ($good) {
-    my $data = Reader::scheme_read(Reader::make_scheme_stream($fh));
+    my $data = scheme_read(make_scheme_stream($fh));
     print "From file:\n" . Dumper($data) . "\n";
     $good = $data;
 }
