@@ -1,6 +1,6 @@
 * Title
 
-Studying the effects of a syntactic analyzer on a Scheme program
+Studying the effects of a syntactic analyzer on Scheme programs
 
 * Introduction
 
@@ -9,40 +9,65 @@ Interpretation of Computer Programs, the outline for a simple Scheme
 interpreter is given. In following sections, enhancements are made to
 this interpreter. One of the most radical changes to the interpreter
 is done by separating syntactic analysis of a Scheme expression from
-execution. According to the authors, this greatly improves execution
-times.
+the execution of the same. According to the authors, this greatly
+improves execution times.
 
 The purpose of this experiment is to study the effects of a syntactic
 analyzer on run time. We believe that if a syntactic analyzer is used
-before evaluation of Scheme code, a great benifit in speed will be
-yielded.
+before evaluation of Scheme code, a great increase in speed will be
+observed.
 
 * Materials
 
 ** 1 computer, running FreeBSD v8.2
-   The computer's name is Pinball.
 ** MIT Scheme v9.0.1
-   This is for testing purposes.
 ** Perl v5.14.1
-   This is what our programs will be written in.
 ** Emacs v23.2.1
-   THE text editor that we use to write our programs.
 ** Git v1.7.9.6
-   Version control system, a.k.a. "The stupid content tracker."
+** 17 kg of bacon
 
 * Methods
 
-Two versions of a simple Scheme interpreter will be written: one that
-uses the "traditional" method of execution, and a second that uses the
-syntactial analyzation techniques outlined in SICP. The programs will
+Two versions of a simple Scheme interpreter were written: one that
+used the "traditional" method of execution, and a second that used the
+syntactial analyzation techniques outlined in SICP. The programs were
 be written in Perl.
 
-A series of Scheme programs will be run. These programs will not only
-test the completeness of the Scheme interpreter, but also the speed at
-which the interpreters can execute code.
+A series of Scheme programs were run. The programs were tested on a
+standardized implementation of Scheme (MIT Scheme) to ensure that the
+programs were "legal" (i.e. valid Scheme programs (we did not want our
+interpreters to execute "illigal" Scheme code.)) These programs not
+only tested the completeness of the Scheme interpreters, but also the
+speed at which the interpreters executed code.
 
 Using various benchmarking methods, the speed at which the programs
-execute will be measured, recorded, and compared.
+execute were measured, recorded, and compared.
+
+Benchmarking was done in the following manner: several diffent blocks
+of code representing various aspects of a Scheme interpeter were
+chosen. Each block was executed one million times. (1,000,000) The
+time required to execute each block one million times was recorded.
+
+The "traditional" method of interpretation works as follows: The
+interpreter receives a Scheme expression. This expression is passed to
+the function EVAL along with an enviroment that the expression is to
+be evaluated within. (The enviroment defaults to a null value.) If the
+expression fits into the category of special forms, (atomic, primitive
+forms that receive special treatment from the evaluator; all other
+functions can be built using these forms) EVAL will dispatch on the
+type of form. If the expression is a function call, the function APPLY
+is called with the evaluated function and evaluated arguments passed
+to it.
+
+The syntactic analyzation method of interpretation is implemented by
+the following procedure: Every time a new Scheme expression is
+encountered, it is passed to the function ANALYZE. This function
+dispatches on the type of expression passed to it (much like the EVAL
+function described in the previous paragraph) and returns a function
+that, when given the evaluation enviroment, returns the result of the
+expression. Thus, all EVAL must do is call the function returned by
+ANALYZE being called on the expression, with the evaluation
+enviroment.
 
 * Data
 
@@ -50,3 +75,6 @@ execute will be measured, recorded, and compared.
 
 * Conclusion
 
+* References
+
+"SICP". Abelson, Sussman, Sussman, Perlis. I<Structure and Interpretation of Computer Programs>. McGraw-Hill Book Company, 1996. Texinfo format.
