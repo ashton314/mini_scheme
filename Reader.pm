@@ -13,13 +13,13 @@ sub import {
 our %READ_TABLE = (
 		   '(' =>
 		   sub {
-		       my($stream, $char, $term_char) = @_;
+		       my($stream, $char) = @_;
 		       return scheme_read_delimited_list($stream, ')');
 		   },
 		   "'" =>
 		   sub {
-		       my($stream, $char, $term_char) = @_;
-		       my $thing = scheme_read($stream, $term_char);
+		       my($stream, $char) = @_;
+		       my $thing = scheme_read($stream);
 		       return ['quote', $thing];
 		   },
 		   '"' =>
@@ -46,49 +46,48 @@ our $EOF = 0;
 
 sub scheme_read {
     my $stream = shift || $STDIN;
-    my $term_char = shift // "";
-    my $pending_obj = '';
+    my $term_char = shift || "\0";
 
-    my $ws = qr/\s/;
+    my $obj;
 
   LOOP: {
 	my $char = $stream->('peek');
-
-	if ($char) {
-	    if (exists $READ_TABLE{$char}) {
-		$stream->('read', 1);
-		return $READ_TABLE{$char}->($stream, $char, $term_char);
-	    }
-	    elsif ($char eq $term_char) {
-		$stream->('read', 1);
-		return wantarray ? ($pending_obj, 1) : $pending_obj;
-	    }
-	    elsif ($EOF or ($char =~ $ws)) {
-		$stream->('read', 1);
-		if ($pending_obj) {
-		    return wantarray ? ($pending_obj, 0) : $pending_obj;
-		}
-	    }
-	    else {
-		$pending_obj .= $stream->('read', 1);
-	    }
+#	print "Char in loop: `$char`\n";
+	if (exists $READ_TABLE{$char}) {
+	    $stream->('read', 1);
+	    return $READ_TABLE{$char}->($stream, $char);
+	}
+	elsif ($stream->('eof')) {
+	    last LOOP;
+	}
+	elsif ($char !~ /\w/) {
+	    $stream->('read', 1) unless $char eq $term_char;
+	    last LOOP if $obj;
+	}
+	else {
+	    $stream->('read', 1);
+	    $obj .= $char;
 	    redo LOOP;
 	}
     }
+    return $obj;
 }
 
 sub scheme_read_delimited_list {
-    my($stream, $term_char) = @_;
-    my @things = ();
-    my $last_was_list = 0;
-  LOOP: {
-	my($thing, $eol) = scheme_read($stream, $term_char);
-	push @things, $thing unless $last_was_list;
-	$last_was_list = (ref $thing eq 'ARRAY');
-	redo LOOP unless $eol;
+    my ($stream, $term_char) = @_;
+#    print "Term char: $term_char\n";
+    my @lst = ();
+
+    my $char = $stream->('peek');
+    while ($char ne $term_char) {
+#	print "Char in while: `$char`\n";
+	my $thing = scheme_read($stream, $term_char);
+	push @lst, $thing if defined($thing);
+	$char = $stream->('peek');
     }
 
-    return \@things;
+    $stream->('read', 1);
+    return \@lst;
 }
 
 sub make_scheme_stream {
