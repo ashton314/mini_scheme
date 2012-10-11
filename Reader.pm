@@ -22,6 +22,23 @@ our %READ_TABLE = (
 		       my $thing = scheme_read($stream, $term_char);
 		       return ['quote', $thing];
 		   },
+		   '"' =>
+		   sub {
+		       my($stream, $char) = @_;
+		       my $str = '';
+		       my $unescaped = 1;
+		       until($stream->('peek') eq '"' and $unescaped) {
+			   my $chr = $stream->('read', 1);
+			   if ($chr eq "\\") {
+			       $unescaped = 0 if $unescaped;
+			   }
+			   else {
+			       $unescaped = 1;
+			   }
+			   $str .= $chr;
+		       }
+		       return $str;
+		   },
 		  );
 
 our $STDIN = make_scheme_stream(\*STDIN);
@@ -31,6 +48,8 @@ sub scheme_read {
     my $stream = shift || $STDIN;
     my $term_char = shift // "";
     my $pending_obj = '';
+
+    my $ws = qr/\s/;
 
   LOOP: {
 	my $char = $stream->('peek');
@@ -44,9 +63,11 @@ sub scheme_read {
 		$stream->('read', 1);
 		return wantarray ? ($pending_obj, 1) : $pending_obj;
 	    }
-	    elsif ($EOF or ($char eq ' ')) {
+	    elsif ($EOF or ($char =~ $ws)) {
 		$stream->('read', 1);
-		return wantarray ? ($pending_obj, 0) : $pending_obj;
+		if ($pending_obj) {
+		    return wantarray ? ($pending_obj, 0) : $pending_obj;
+		}
 	    }
 	    else {
 		$pending_obj .= $stream->('read', 1);
