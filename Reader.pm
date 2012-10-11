@@ -58,6 +58,10 @@ sub scheme_read {
     my $stream = shift || $STDIN;
     my $term_char = shift || "\0";
 
+    unless (ref $stream eq "CODE") {
+	$stream = make_scheme_stream($stream);
+    }
+
     my $obj;
 
   LOOP: {
@@ -102,6 +106,10 @@ sub scheme_read_from_file {
 sub scheme_read_delimited_list {
     my ($stream, $term_char) = @_;
     my @lst = ();
+
+    unless (ref $stream eq "CODE") {
+	$stream = make_scheme_stream($stream);
+    }
 
     my $char = $stream->('peek');
     while ($char ne $term_char) {
@@ -181,7 +189,7 @@ Reader -- A suite of functions to read LISP data
    use Data::Dumper;
    use Reader;
 
-   my $array_ref = Reader::scheme_read(\*STDIN, "\n");
+   my $array_ref = scheme_read(\*STDIN);
    print "LISP structure read in: " . Dumper($array_ref) . "\n";
 
 =head1 DESCRIPTION
@@ -191,30 +199,56 @@ data from a Perl data stream.
 
 =head1 FUNCTIONS
 
+These functions are automatically imported into the current package,
+so you can call them directly. (The method for doing this was snarfed
+from L<Quantum::Superpositions>.)
+
 =over 4
 
-=item scheme_read($scheme_stream, $eof_char)
+=item scheme_read
 
-Takes a file handle and a character considered to be the "end of file"
-character. The EOF char defaults to ^D. For making your own REPL, try
-using "\n" as the EOF character.
+Takes a file handle of some sort.
 
-This returns an array ref.
-
-B<$scheme_stream> must be something produced by
-L</make_scheme_stream>. If it is `0' (or some other false value), the
-stream will default to B<STDIN>.
-
-In the future, I might make this so that it will simply take a file
-handle as its argument.
-
-=item make_scheme_stream($fh)
+=item make_scheme_stream
 
 Given a file handle, this returns a stream that L</scheme_read> can
-use. B<IT IS VERY IMPORTANT THAT THIS FUNCTION BE USED!> This is
-required even when slurping from a file.
+use. Rarely called directly. L</scheme_read> will automatically call
+this function if it is passed a raw Perl file handle.
+
+=item scheme_read_delimited_list
+
+Takes a file handle and a terminating character. This will try to read
+objects from the stream until the next character on the stream is the
+terminating char. Returns an array ref of all objects read.
+
+=item scheme_read_from_file
+
+Given a file handle, will continuously call L</scheme_read> on the file handle until the file's contents have been exhausted.
 
 =back
+
+=head1 EXAMPLES
+
+A one-time use REPL: (just the Read part)
+
+   use Data::Dumper;
+   use Reader;
+   
+   print "Expr: ";
+   my $thing = scheme_read(0);
+   print "Thing: " . Dumper($thing) . "\n";
+
+
+Reading data from a file:
+
+   use Data::Dumper;
+   use Reader;
+   
+   open my $fh, '<', $file or die "open: $!";
+   
+   my $data = scheme_read_from_file($fh);
+   print "From file:\n" . Dumper($data) . "\n";
+
 
 =head1 AUTHOR
 
