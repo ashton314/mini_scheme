@@ -51,11 +51,10 @@ our %READ_TABLE = (
 		   },
 		  );
 
-our $STDIN = make_scheme_stream(\*STDIN);
 our $EOF = 0;
 
 sub scheme_read {
-    my $stream = shift || $STDIN;
+    my $stream = shift || make_scheme_stream(\*STDIN);
     my $term_char = shift || "\0";
 
     unless (ref $stream eq "CODE") {
@@ -67,6 +66,7 @@ sub scheme_read {
   LOOP: {
 	my $char = $stream->('peek');
 	last LOOP unless $char;
+
 	if (exists $READ_TABLE{$char}) {
 	    $stream->('read', 1);
 	    return $READ_TABLE{$char}->($stream, $char, $term_char);
@@ -76,7 +76,7 @@ sub scheme_read {
 	}
 	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#]/) {
 	    $stream->('read', 1) unless $char eq $term_char;
-	    last LOOP if $obj;
+	    last LOOP if defined($obj);
 	}
 	else {
 	    $stream->('read', 1);
