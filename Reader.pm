@@ -2,29 +2,31 @@ package Reader;
 use strict;
 use warnings;
 
+use Data::Dumper;
+
 sub import {
     my $caller = caller;
     no strict 'refs';
     *{ $caller . '::' . $_ } = __PACKAGE__->can( $_ )
-      for qw(scheme_read scheme_read_delimited_list make_scheme_stream);
+      for qw(scheme_read scheme_read_delimited_list make_scheme_stream scheme_read_from_file);
     1;
 }
 
 our %READ_TABLE = (
 		   '(' =>
 		   sub {
-		       my($stream, $char) = @_;
+		       my($stream, $char, $term_char) = @_;
 		       return scheme_read_delimited_list($stream, ')');
 		   },
 		   "'" =>
 		   sub {
-		       my($stream, $char) = @_;
-		       my $thing = scheme_read($stream);
+		       my($stream, $char, $term_char) = @_;
+		       my $thing = scheme_read($stream, $term_char);
 		       return ['quote', $thing];
 		   },
 		   '"' =>
 		   sub {
-		       my($stream, $char) = @_;
+		       my($stream, $char, $term_char) = @_;
 		       my $str = '';
 		       my $unescaped = 1;
 		       until($stream->('peek') eq '"' and $unescaped) {
@@ -37,7 +39,15 @@ our %READ_TABLE = (
 			   }
 			   $str .= $chr;
 		       }
-		       return $str;
+		       $stream->('read', 1);
+		       return ['string', $str];
+		   },
+		   ';' => sub {
+		       my $stream = shift;
+		       while ($stream->('peek') ne "\n") {
+			   $stream->('read', 1);
+		       }
+		       return undef;
 		   },
 		  );
 
@@ -52,15 +62,15 @@ sub scheme_read {
 
   LOOP: {
 	my $char = $stream->('peek');
-#	print "Char in loop: `$char`\n";
+	last LOOP unless $char;
 	if (exists $READ_TABLE{$char}) {
 	    $stream->('read', 1);
-	    return $READ_TABLE{$char}->($stream, $char);
+	    return $READ_TABLE{$char}->($stream, $char, $term_char);
 	}
 	elsif ($stream->('eof')) {
 	    last LOOP;
 	}
-	elsif ($char !~ /\w/) {
+	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#]/) {
 	    $stream->('read', 1) unless $char eq $term_char;
 	    last LOOP if $obj;
 	}
@@ -73,14 +83,28 @@ sub scheme_read {
     return $obj;
 }
 
+sub scheme_read_from_file {
+    my $stream = shift;
+    my @lst = ();
+
+    unless (ref $stream eq "CODE") {
+	$stream = make_scheme_stream($stream);
+    }
+
+    until ($stream->('eof')) {
+	my $thing = scheme_read($stream);
+	push @lst, $thing if defined($thing);
+    }
+
+    return \@lst;    
+}
+
 sub scheme_read_delimited_list {
     my ($stream, $term_char) = @_;
-#    print "Term char: $term_char\n";
     my @lst = ();
 
     my $char = $stream->('peek');
     while ($char ne $term_char) {
-#	print "Char in while: `$char`\n";
 	my $thing = scheme_read($stream, $term_char);
 	push @lst, $thing if defined($thing);
 	$char = $stream->('peek');
@@ -93,40 +117,45 @@ sub scheme_read_delimited_list {
 sub make_scheme_stream {
     my $stream = shift;
     my $buffer = '';
-    my %options = (
-		   'read' => sub {
-		       my $acc = '';
-		       my $length = shift // 1;
-		       if ($buffer) {
-			   while ($buffer and ($length >= 1)) {
-			       $acc .= substr($buffer, 0, 1);
-			       $buffer = substr($buffer, 1);
-			       $length--;
-			   }
-		       }
-		       if ($length) {
-			   my $tmp = '';
-			   unless( read $stream, $tmp, $length ) { $EOF = 1; }
-			   $acc .= $tmp;
-		       }
-		       return $acc;
-		   },
-		   'eof' => sub {
-		       return eof($stream);
-		   },
-		   to_string => sub {
-		       return "Buffer: $buffer\nStream: $stream";
-		   },
-		   'peek' => sub {
-		       if ($buffer) {
-			   return substr($buffer, 0, 1);
-		       }
-		       else {
-			   read $stream, $buffer, 1;
-			   return $buffer;
-		       }
-		   },
-		   );
+    my %options = ();
+    %options = (
+		'read' => sub {
+		    my $acc = '';
+		    my $length = shift // 1;
+		    if ($buffer) {
+			while ($buffer and ($length >= 1)) {
+			    $acc .= substr($buffer, 0, 1);
+			    $buffer = substr($buffer, 1);
+			    $length--;
+			}
+		    }
+		    if ($length) {
+			my $tmp = '';
+			unless( read $stream, $tmp, $length ) { $EOF = 1; }
+			$acc .= $tmp;
+		    }
+		    return $acc;
+		},
+		'eof' => sub {
+		    my $char = $options{peek}->();
+		    if (eof($stream) or ! defined($char)) {
+			return 1;
+		    }
+		    return 0;
+		},
+		to_string => sub {
+		    return "Buffer: $buffer\nStream: $stream";
+		},
+		peek => sub {
+		    if ($buffer) {
+			return substr($buffer, 0, 1);
+		    }
+		    else {
+			read $stream, $buffer, 1;
+			return $buffer;
+		    }
+		},
+	       );
     return sub {
 	my $op = shift;
 	if (exists $options{$op}) {
