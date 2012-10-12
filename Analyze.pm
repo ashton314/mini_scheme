@@ -13,7 +13,7 @@ sub scheme_analyze {
     ## NEEDED. ALSO, THERE MUST BE SOME VARIABLE KEPT THAT REMEMBERS
     ## MACRO DEFINITIONS DURING COMPILE TIME SO THEY CAN BE EXPANDED
     ## THERE.
-    
+
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
 	    when ('string') { return sub { $$expr[1]; }; }
@@ -47,14 +47,27 @@ sub scheme_analyze {
 	    }
 	    when ('lambda') {
 		my @expression = @{ $expr };
+		shift @expression; # Cut off the 'LAMBDA'
 		my $params = shift @expression;
 		my $body = scheme_analyze(['begin', @expression]);
 
-		# WORKING HERE
+		return sub {
+		    my $eval_env = shift;
+		    return {
+			    parent_env  => $eval_env,
+			    args        => $params,
+			    lambda_expr => \@expression,
+			    body        => $body,
+			   };
+	    }
+	    when ('begin') {
+		my @block = @{ $expr };
+		shift @block;	# Cut off the 'BEGIN'
+		my @exprs = map { scheme_analyze($_) } @block;
+
+		## WORKING HERE
 
 	    }
-
-	    when ('begin') {}
 	    default {}
 	}
     }

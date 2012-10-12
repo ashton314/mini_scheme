@@ -1,0 +1,20 @@
+Enviroments could be structured like so:
+
+my $env = {
+	   symbol1 => 'val1',
+	   symbol2 => 'val2',
+	   symbol3 => 'val3',
+	   '..'    => {		# This MUST be a ref to the actual parent enviroment
+		       symbol2 => 'val2.1',
+		       symbol4 => 'val4',
+		       '..'    => {}, # etc.
+		      },
+	  };
+
+If a symbol's value is not found in the current enviroment, the parent
+enviroment is searched for the variable.
+
+We might be able to a bit of look up at compile time if we KNOW that
+the symbol is not defined in the inner enviroment: if the outer
+enviroment is dereferancable during compile time, we can do some
+lookup then.

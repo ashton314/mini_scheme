@@ -1,0 +1,11 @@
+Enviroments could be structured like so:
+
+my $env = {
+	   symbol1 => 'val1',
+	   symbol2 => 'val2',
+	   symbol3 => 'val3',
+	   '..'    => {		# This MUST be a ref to the actual parent enviroment
+		       symbol2 => 'val2.1',
+		       symbol4 => 'val4',
+		      },
+	  };
