@@ -15,8 +15,22 @@ my $GLOBAL_ENV = {
 				   closure_env => {},
 				   args        => [],
 				   lambda_expr => undef,
-				   body        => sub { exit; },
+				   body        => sub {
+				       print "Happy Happy Joy Joy\n";
+				       exit;
+				   },
 				  },
+			  '+-primitive' => {
+					    closure_env => {},
+					    args        => ['one', 'two'],
+					    lambda_expr => undef,
+					    body => sub {
+						my $env = shift;
+						my $one = find_var('one', $env);
+						my $two = find_var('two', $env);
+						return $one + $two;
+					    },
+					   },
 			 },
 		 };
 
@@ -27,7 +41,7 @@ REPL: {
 	$expr = scheme_read(0, "\n");
 	redo INPUT unless defined($expr);
     }
-    print scheme_eval($expr, $GLOBAL_ENV) . "\n";
+    print "\n" . scheme_eval($expr, $GLOBAL_ENV) . "\n";
     redo REPL;
 }
 
@@ -77,22 +91,6 @@ sub scheme_analyze {
 		    }
 		};
 	    }
-	    when ('lambda') {
-		my @expression = @{ $expr };
-		shift @expression; # Cut off the 'LAMBDA'
-		my $params = shift @expression;
-		my $body = scheme_analyze(['begin', @expression]);
-
-		return sub {
-		    my $eval_env = shift;
-		    return {
-			    closure_env => $eval_env,
-			    args        => $params,
-			    lambda_expr => \@expression,
-			    body        => $body,
-			   };
-		};
-	    }
 	    when ('begin') {
 		my @block = @{ $expr };
 		shift @block;	# Cut off the 'BEGIN'
@@ -112,26 +110,44 @@ sub scheme_analyze {
 		}
 		return $seq;
 	    }
-	    default {
-		my @exp = @{ $expr };
-		my $func_proc = scheme_analyze((shift @exp));
-		my @arg_list = @exp;
-		my @arg_procs = map { scheme_analyze($_) } @arg_list;
+	    when ('lambda') {
+		my @expression = @{ $expr };
+		shift @expression; # Cut off the 'LAMBDA'
+		my $params = shift @expression;
+		my $body = scheme_analyze(['begin', @expression]);
+
 		return sub {
-		    my $outer_env = shift;
+		    my $eval_env = shift;
+		    return {
+			    closure_env => $eval_env,
+			    args        => $params,
+			    lambda_expr => \@expression,
+			    body        => $body,
+			   };
+		};
+	    }
+	    default {
 
-		    my $func = $func_proc->($outer_env);
-		    my $closure_env = $$func{closure_env};
-		    my @arg_vals = map { $_->($outer_env) } @arg_procs;
-		    my %arg_hash  = map { $_ => shift @arg_vals } @arg_list;
+		no warnings;
 
+		my @expression = @{ $expr };
+		my ($func_proc, @arg_procs) =
+		  map { scheme_analyze($_) } @expression;
+
+		return sub {
+		    my $env = shift;
+		    my %func = %{ $func_proc->($env) };
+		    my @arg_syms = @{ $func{args} };
+		    my @arg_vals = map { $_->($env) } @arg_procs;
+		    my %arg_hash = map { (shift @arg_syms) => $_ } @arg_vals;
 		    my $nenv = {
 				parent_env => {
-					       parent_env => $outer_env,
-					       env        => $closure_env,
+					       parent_env => $env,
+					       env       => $func{closure_env},
 					      },
 				env        => \%arg_hash,
 			       };
+		    return $func{body}->($nenv);
 		};
 	    }
 	}
