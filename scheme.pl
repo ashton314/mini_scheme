@@ -20,17 +20,81 @@ my $GLOBAL_ENV = {
 				       exit;
 				   },
 				  },
-			  '+-primitive' => {
-					    closure_env => {},
-					    args        => ['one', 'two'],
-					    lambda_expr => undef,
-					    body => sub {
-						my $env = shift;
-						my $one = find_var('one', $env);
-						my $two = find_var('two', $env);
-						return $one + $two;
-					    },
-					   },
+			  '=' => {
+				  closure_env => {},
+				  args        => ['.', 'args'],
+				  lambda_expr => undef,
+				  body => sub {
+				      my $env = shift;
+				      my @args = @{ find_var('args', $env) };
+				      (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- =\n" && return undef) if scalar @args < 2;
+				      my $thing = shift @args;
+				      foreach (@args) {
+					  return '#f' if $_ != $thing;
+				      }
+				      return '#t';
+				  },
+				 },
+			  '+' => {
+				  closure_env => {},
+				  args        => ['.', 'args'],
+				  lambda_expr => undef,
+				  body => sub {
+				      my $env = shift;
+				      my $args = find_var('args', $env);
+				      my $sum = 0;
+				      map { $sum += $_ } @{ $args };
+				      return $sum;
+				  },
+				 },
+			  '-' => {
+				  closure_env => {},
+				  args        => ['.', 'args'],
+				  lambda_expr => undef,
+				  body => sub {
+				      my $env = shift;
+				      my $args = find_var('args', $env);
+				      my $sum = 0;
+				      map { $sum -= $_ } @{ $args };
+				      return $sum;
+				  },
+				 },
+			  '*' => {
+				  closure_env => {},
+				  args        => ['.', 'args'],
+				  lambda_expr => undef,
+				  body => sub {
+				      my $env = shift;
+				      my $args = find_var('args', $env);
+				      my $prod = 1;
+				      map { $prod *= $_ } @{ $args };
+				      return $prod;
+				  },
+				 },
+			  '/' => {
+				  closure_env => {},
+				  args        => ['.', 'args'],
+				  lambda_expr => undef,
+				  body => sub {
+				      my $env = shift;
+				      my $args = find_var('args', $env);
+				      my $quot = 1;
+				      map { $quot /= $_ } @{ $args };
+				      return $quot;
+				  },
+				 },
+			  'mod' => {
+				  closure_env => {},
+				  args        => ['.', 'args'],
+				  lambda_expr => undef,
+				  body => sub {
+				      my $env = shift;
+				      my $args = find_var('args', $env);
+				      my $rem = 0;
+				      map { $rem %= $_ } @{ $args };
+				      return $rem;
+				  },
+				 },
 			 },
 		 };
 
@@ -154,8 +218,23 @@ sub scheme_analyze {
 		    my $env = shift;
 		    my %func = %{ $func_proc->($env) };
 		    my @arg_syms = @{ $func{args} };
+		    my @arg_vals = ();
 		    my @arg_vals = map { $_->($env) } @arg_procs;
-		    my %arg_hash = map { (shift @arg_syms) => $_ } @arg_vals;
+		    my %arg_hash = ();
+		    my $slurpy = 0;
+		    for my $sym (@arg_syms) {
+			if ($slurpy) {
+			    $arg_hash{$sym} = \@arg_vals;
+			    last;
+			}
+			elsif ($sym eq '.') {
+			    $slurpy = 1;
+			    next;
+			}
+			else {
+			    $arg_hash{$sym} = shift @arg_vals;
+			}
+		    }
 		    my $nenv = {
 				parent_env => {
 					       parent_env => $env,

@@ -74,7 +74,7 @@ sub scheme_read {
 	elsif ($stream->('eof')) {
 	    last LOOP;
 	}
-	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#]/) {
+	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#\.]/) {
 	    $stream->('read', 1) unless $char eq $term_char;
 	    last LOOP if defined($obj);
 	}
