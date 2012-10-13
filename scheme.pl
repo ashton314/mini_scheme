@@ -12,7 +12,7 @@ my $GLOBAL_ENV = {
 		  parent_env => 0,
 		  env => {
 			  quit => {
-				   closure_env => 0,
+				   closure_env => {},
 				   args        => [],
 				   lambda_expr => undef,
 				   body        => sub { exit; },
@@ -54,7 +54,8 @@ sub scheme_analyze {
 		my $val = scheme_analyze($$expr[2]);
 		return sub { 
 		    my $env = shift;
-		    return $$env{$var} = $val->($env);
+		    my $inner_env = $$env{env};
+		    return ($$inner_env{$var} = $val->($env));
 		}; }
 	    when ('define') {}
 	    when ('if') {
@@ -112,14 +113,18 @@ sub scheme_analyze {
 		return $seq;
 	    }
 	    default {
-		my $func = scheme_analyze(+shift);
-		my @arg_list = @_;
+		my @exp = @{ $expr };
+		my $func_proc = scheme_analyze((shift @exp));
+		my @arg_list = @exp;
 		my @arg_procs = map { scheme_analyze($_) } @arg_list;
-		my $closure_env = $$func{closure_env};
 		return sub {
 		    my $outer_env = shift;
+
+		    my $func = $func_proc->($outer_env);
+		    my $closure_env = $$func{closure_env};
 		    my @arg_vals = map { $_->($outer_env) } @arg_procs;
 		    my %arg_hash  = map { $_ => shift @arg_vals } @arg_list;
+
 		    my $nenv = {
 				parent_env => {
 					       parent_env => $outer_env,
@@ -140,6 +145,7 @@ sub scheme_analyze {
 	else {		# Variable
 	    return sub {
 		my $env = shift;
+#		print Dumper($env) . "\n";
 		return find_var($expr, $env);
 	    };
 	}
