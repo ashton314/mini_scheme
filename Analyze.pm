@@ -54,21 +54,50 @@ sub scheme_analyze {
 		return sub {
 		    my $eval_env = shift;
 		    return {
-			    parent_env  => $eval_env,
+			    closure_env => $eval_env,
 			    args        => $params,
 			    lambda_expr => \@expression,
 			    body        => $body,
 			   };
+		};
 	    }
 	    when ('begin') {
 		my @block = @{ $expr };
 		shift @block;	# Cut off the 'BEGIN'
 		my @exprs = map { scheme_analyze($_) } @block;
-
-		## WORKING HERE
-
+		my $first_exp = pop @exprs;
+		my $seq = sub {
+		    my $env = shift;
+		    $first_exp->($env);
+		};
+		while (@exprs) {
+		    my $exp = pop @exprs;
+		    $seq = sub {
+			my $env = shift;
+			$exp->($env);
+			$seq->($env);
+		    };
+		}
+		return $seq;
 	    }
-	    default {}
+	    default {
+		my $func = scheme_analyze(+shift);
+		my @arg_list = @_;
+		my @arg_procs = map { scheme_analyze($_) } @arg_list;
+		my $closure_env = $$func{closure_env};
+		return sub {
+		    my $outer_env = shift;
+		    my @arg_vals = map { $_->($outer_env) } @arg_procs;
+		    my %arg_hash  = map { $_ => shift @arg_vals } @arg_list;
+		    my $nenv = {
+				parent_env => {
+					       parent_env => $outer_env,
+					       env        => $closure_env,
+					      },
+				env        => \%arg_hash,
+			       };
+		};
+	    }
 	}
     }
     else {
@@ -80,12 +109,27 @@ sub scheme_analyze {
 	else {		# Variable
 	    return sub {
 		my $env = shift;
-		return $$env{$expr};
+		return find_var($expr, $env);
 	    };
 	}
     }
 }
 
-
+sub find_var {
+    my ($var, $env) = @_;
+    my $this_env = $$env{env};
+    if (exists $$this_env{$var}) {
+	return $$this_env{$var};
+    }
+    else {
+	if ( $$env{parent_env} ) {
+	    my $parent_env = $$env{parent_env};
+	    return find_var($var, $parent_env);
+	}
+	else {
+	    return undef;
+	}
+    }
+}
 
 1;

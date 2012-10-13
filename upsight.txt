@@ -18,3 +18,10 @@ We might be able to a bit of look up at compile time if we KNOW that
 the symbol is not defined in the inner enviroment: if the outer
 enviroment is dereferancable during compile time, we can do some
 lookup then.
+
+See the note on page 487 in SICP. The outline described here is known
+as "deep binding." "Lexical addressing" is supposed to be more
+efficient.
+
+We need to find some way to represent these enviroments so we do not
+get a clash with the symbol '..'. My solution: more nesting of hashes!!
