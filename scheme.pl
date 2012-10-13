@@ -71,14 +71,30 @@ sub scheme_analyze {
 		    my $inner_env = $$env{env};
 		    return ($$inner_env{$var} = $val->($env));
 		}; }
-	    when ('define') {}
+	    when ('define') {
+		my @expr = @{ $expr };
+		my @expression = @{ $expr };
+		shift @expression; # Knock off that 'define'
+
+		if (ref $expr[1] eq 'ARRAY') { # Function def
+		    my @arglist    = @{ shift @expression };
+		    my @body       = @expression;
+		    my $to_analyze = ['set!', (shift @arglist),
+					   ['lambda', \@arglist, @body]];
+		    return scheme_analyze($to_analyze);
+		}
+		else {		# Var def
+		    return scheme_analyze(['set!', (shift @expression),
+					   (shift @expression)]);
+		}
+	    }
 	    when ('if') {
 		my $pred = scheme_analyze($$expr[1]);
 		my $tcl  = scheme_analyze($$expr[2]);
 		my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3]) : 0;
 		return sub {
 		    my $env = shift;
-		    if ($pred->($env) ne 'nil') {
+		    if ($pred->($env) ne '#f') {
 			return $tcl->($env);
 		    }
 		    else {
