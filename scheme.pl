@@ -8,8 +8,9 @@ use Scalar::Util;
 
 use Reader;
 
+my %TRACED_FUNCTIONS = ();
 my $GLOBAL_ENV = {
-		  parent_env => 0,
+		  parent_env => undef,
 		  env => {
 			  quit => {
 				   closure_env => {},
@@ -20,6 +21,16 @@ my $GLOBAL_ENV = {
 				       exit;
 				   },
 				  },
+			  apply => {
+				    closure_env => {},
+				    args        => ['function', 'args'],
+				    lambda_expr => undef,
+				    body        => sub {
+					my $env = shift;
+					my $func = find_var('function', $env);
+					my $args = find_var('args', $env);
+				    },
+				   },
 			  '=' => {
 				  closure_env => {},
 				  args        => ['.', 'args'],
@@ -95,6 +106,17 @@ my $GLOBAL_ENV = {
 				      return $rem;
 				  },
 				 },
+			  trace => {
+				    closure_env => {},
+				    args        => ['symbol'],
+				    lambda_expr => undef,
+				    body => sub {
+					my $env = shift;
+					my $func = find_var('symbol', $env);
+					$TRACED_FUNCTIONS{$func} = 1;
+					return "OK";
+				    },
+				   },
 			 },
 		 };
 
@@ -220,6 +242,7 @@ sub scheme_analyze {
 		    my @arg_syms = @{ $func{args} };
 		    my @arg_vals = ();
 		    my @arg_vals = map { $_->($env) } @arg_procs;
+		    my @arg_vals_copy = @arg_vals;
 		    my %arg_hash = ();
 		    my $slurpy = 0;
 		    for my $sym (@arg_syms) {
@@ -242,6 +265,11 @@ sub scheme_analyze {
 					      },
 				env        => \%arg_hash,
 			       };
+		    print "Constructed env: " . Dumper($nenv) . "\n";
+		    if (exists $TRACED_FUNCTIONS{$expression[0]}) {
+			print "CALLING FUNCTION: @{ [$expression[0]] }\n";
+			print "            ARGS: @arg_vals_copy\n";
+		    }
 		    return $func{body}->($nenv);
 		};
 	    }
@@ -257,6 +285,7 @@ sub scheme_analyze {
 	    return sub {
 		my $env = shift;
 #		print Dumper($env) . "\n";
+#		print STDERR "Looking for $expr";
 		return find_var($expr, $env);
 	    };
 	}
@@ -265,8 +294,11 @@ sub scheme_analyze {
 
 sub find_var {
     my ($var, $env) = @_;
+#    print STDERR ".";
     my $this_env = $$env{env};
     if (exists $$this_env{$var}) {
+	# print STDERR "Found: " . $$this_env{$var} . "\n";
+	# select undef, undef, undef, .5;
 	return $$this_env{$var};
     }
     else {
