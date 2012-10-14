@@ -31,12 +31,7 @@ our %READ_TABLE = (
 		       my $unescaped = 1;
 		       until($stream->('peek') eq '"' and $unescaped) {
 			   my $chr = $stream->('read', 1);
-			   if ($chr eq "\\") {
-			       $unescaped = 0 if $unescaped;
-			   }
-			   else {
-			       $unescaped = 1;
-			   }
+			   $unescaped = $chr eq "\\" ? ! $unescaped : 1;
 			   $str .= $chr;
 		       }
 		       $stream->('read', 1);
@@ -55,7 +50,7 @@ our $EOF = 0;
 
 sub scheme_read {
     my $stream = shift || make_scheme_stream(\*STDIN);
-    my $term_char = shift || "\0";
+    my $term_char = shift || "";
 
     unless (ref $stream eq "CODE") {
 	$stream = make_scheme_stream($stream);
@@ -65,22 +60,19 @@ sub scheme_read {
 
   LOOP: {
 	my $char = $stream->('peek');
-	last LOOP unless $char;
+	last LOOP unless defined($char);
 
 	if (exists $READ_TABLE{$char}) {
 	    $stream->('read', 1);
 	    return $READ_TABLE{$char}->($stream, $char, $term_char);
 	}
-	elsif ($stream->('eof')) {
-	    last LOOP;
-	}
 	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#\.]/) {
-	    $stream->('read', 1) unless $char eq $term_char;
+	    $stream->('read', 1) unless ($char eq $term_char);
 	    last LOOP if defined($obj);
 	}
 	else {
 	    $stream->('read', 1);
-	    $obj .= $char;
+	    $obj .= '' . $char;
 	    redo LOOP;
 	}
     }
@@ -97,7 +89,7 @@ sub scheme_read_from_file {
 
     until ($stream->('eof')) {
 	my $thing = scheme_read($stream);
-	push @lst, $thing if defined($thing);
+	push @lst, $thing;
     }
 
     return \@lst;    
@@ -130,8 +122,8 @@ sub make_scheme_stream {
 		'read' => sub {
 		    my $acc = '';
 		    my $length = shift // 1;
-		    if ($buffer) {
-			while ($buffer and ($length >= 1)) {
+		    if (length $buffer) {
+			while (length $buffer and ($length >= 1)) {
 			    $acc .= substr($buffer, 0, 1);
 			    $buffer = substr($buffer, 1);
 			    $length--;
@@ -140,7 +132,7 @@ sub make_scheme_stream {
 		    if ($length) {
 			my $tmp = '';
 			unless( read $stream, $tmp, $length ) { $EOF = 1; }
-			$acc .= $tmp;
+			$acc .= '' . $tmp;
 		    }
 		    return $acc;
 		},
@@ -156,11 +148,11 @@ sub make_scheme_stream {
 		},
 		peek => sub {
 		    if ($buffer) {
-			return substr($buffer, 0, 1);
+			return '' . substr($buffer, 0, 1);
 		    }
 		    else {
 			read $stream, $buffer, 1;
-			return $buffer;
+			return '' . $buffer;
 		    }
 		},
 	       );

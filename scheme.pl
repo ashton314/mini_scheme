@@ -265,7 +265,7 @@ sub scheme_analyze {
 					      },
 				env        => \%arg_hash,
 			       };
-		    print "Constructed env: " . Dumper($nenv) . "\n";
+#		    print "Constructed env: " . Dumper($nenv) . "\n";
 		    if (exists $TRACED_FUNCTIONS{$expression[0]}) {
 			print "CALLING FUNCTION: @{ [$expression[0]] }\n";
 			print "            ARGS: @arg_vals_copy\n";
