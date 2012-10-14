@@ -50,7 +50,7 @@ our $EOF = 0;
 
 sub scheme_read {
     my $stream = shift || make_scheme_stream(\*STDIN);
-    my $term_char = shift || "";
+    my $term_char = shift || "\0";
 
     unless (ref $stream eq "CODE") {
 	$stream = make_scheme_stream($stream);
@@ -60,7 +60,7 @@ sub scheme_read {
 
   LOOP: {
 	my $char = $stream->('peek');
-	last LOOP unless defined($char);
+	last LOOP unless length $char;
 
 	if (exists $READ_TABLE{$char}) {
 	    $stream->('read', 1);
@@ -72,7 +72,7 @@ sub scheme_read {
 	}
 	else {
 	    $stream->('read', 1);
-	    $obj .= '' . $char;
+	    $obj .= $char;
 	    redo LOOP;
 	}
     }
@@ -106,7 +106,7 @@ sub scheme_read_delimited_list {
     my $char = $stream->('peek');
     while ($char ne $term_char) {
 	my $thing = scheme_read($stream, $term_char);
-	push @lst, $thing if defined($thing);
+	push @lst, defined($thing) ? $thing : '0';
 	$char = $stream->('peek');
     }
 
