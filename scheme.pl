@@ -106,6 +106,17 @@ my %GLOBAL_ENV = (
 		return $rem;
 	    },
 	},
+	'write' => {
+		    closure_env => {},
+		    args        => ['string'],
+		    lambda_expr => undef,
+		    body => sub {
+			my $env = shift;
+			my $obj = find_var('string', $env);
+			print to_string($obj);
+			return undef;
+		    },
+		   },
 	closure_env => {
 	    closure_env => {},
 	    args        => ['symbol'],
@@ -123,6 +134,26 @@ my %GLOBAL_ENV = (
 		}
 	    },
 	},
+	env_symbols => {
+			closure_env => {},
+			args        => [],
+			lambda_expr => [],
+			body => sub {
+			    my $env = shift;
+			    my @syms = keys %{ $$env{env} };
+			    return \@syms;
+			},
+		       },
+	env_dump => {
+		closure_env => {},
+		args        => [],
+		lambda_expr => [],
+		body => sub {
+		    my $env = shift;
+		    print Dumper( $$env{env} );
+		    return undef;
+		},
+	       },
 	trace => {
 	    closure_env => {},
 	    args        => ['symbol'],
@@ -148,7 +179,7 @@ REPL: {
 	redo INPUT unless defined($expr);
     }
     my $to_print = scheme_eval($expr, \%GLOBAL_ENV);
-    print "\n" . (defined($to_print) ? $to_print : ";UNDEF") . "\n";
+    print "\n" . (defined($to_print) ? to_string($to_print) : ";UNDEF") . "\n";
     redo REPL;
 }
 
@@ -174,7 +205,7 @@ sub scheme_analyze {
 		my $var = $$expr[1];
 		my $val = scheme_analyze($$expr[2]);
 		return sub { 
-		    set_var($var, $_[0], $val->($_[0]));
+		    return set_var($var, $_[0], $val->($_[0]));
 		}; }
 	    when ('define') {
 		my @expr = @{ $expr };
@@ -188,8 +219,11 @@ sub scheme_analyze {
 		      scheme_analyze(['set!', (shift @arglist),
 				      ['lambda', \@arglist, @body]]);
 		    return sub {
-			$_[0]->{env}{$expr[1][0]} = '';
-			$to_call->($_[0]);
+			my $env = shift;
+			unless (exists $env->{env}{$expr[1][0]}) {
+			    $env->{env}{$expr[1][0]} = 1;
+			}
+			$to_call->($env);
 		    };
 		}
 		else {		# Var def
@@ -214,25 +248,22 @@ sub scheme_analyze {
 			    return $fcl->($_[0]);
 			}
 			else {
-			    return 'nil';
+			    return '#f';
 			}
 		    }
 		};
 	    }
 	    when ('begin') {
+		my $env = shift;
 		my @block = @{ $expr };
 		shift @block;	# Cut off the 'BEGIN'
 		my @exprs = map { scheme_analyze($_) } @block;
 		return sub {
-		    while (@exprs) {
-			my $expr = shift @exprs;
-			if (@exprs) {
-			    $expr->($_[0]);
-			}
-			else {
-			    return $expr->($_[0]);
-			}
+		    my $env = shift;
+		    for my $expr (@exprs[0..($#exprs-1)]) {
+			$expr->($env);
 		    }
+		    return $exprs[$#exprs]->($env);
 		};
 	    }
 	    when ('lambda') {
@@ -260,31 +291,15 @@ sub scheme_analyze {
 		  map { scheme_analyze($_) } @expression;
 
 		return sub {
-		    my %func = %{ $func_proc->($_[0]) };
+		    my $env = shift;
+		    my %func = %{ $func_proc->($env) };
 		    my @arg_syms = @{ $func{args} };
-		    my @arg_vals = ();
-		    my @arg_vals = map { $_->($_[0]) } @arg_procs;
+		    my @arg_vals = map { $_->($env) } @arg_procs;
 		    my @arg_vals_copy = @arg_vals;
-		    my %arg_hash = ();
-		    my $slurpy = 0;
-		    for my $sym (@arg_syms) {
-			if ($slurpy) {
-			    $arg_hash{$sym} = \@arg_vals;
-			    last;
-			}
-			elsif ($sym eq '.') {
-			    $slurpy = 1;
-			    next;
-			}
-			else {
-			    $arg_hash{$sym} = shift @arg_vals;
-			}
-		    }
-		    my $nenv = merge_envs($func{closure_env},
-					  \%arg_hash);
+		    my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
+		    my $nenv = merge_envs($env, $arg_hash);
 
-		    if (exists $TRACED_FUNCTIONS{$expression[0]} &&
-		       $TRACED_FUNCTIONS{$expression[0]}) {
+		    if ($TRACED_FUNCTIONS{$expression[0]}) {
 			print "CALLING FUNCTION: @{ [$expression[0]] }\n";
 			print "            ARGS: @arg_vals_copy\n";
 		    }
@@ -305,6 +320,46 @@ sub scheme_analyze {
 	    };
 	}
     }
+}
+
+sub to_string {
+    my $obj = shift;
+    my $ret = '';
+
+    given (ref $obj) {
+	when ('ARRAY') {
+	    $ret .= '(';
+	    $ret .= shift @{ $obj };
+	    map { $ret .= ' ' . to_string($_) } @{ $obj };
+	    $ret .= ')';
+	}
+	default {
+	    $ret = "$obj";
+	}
+    }
+    return $ret;
+}
+
+sub bind_vars {
+    my ($sym_ref, $val_ref) = @_;
+    my @syms = @{ $sym_ref };
+    my @vals = @{ $val_ref };
+    my %env = ();
+    my $slurpy = 0;
+    for my $sym (@syms) {
+	if ($slurpy) {
+	    $env{$sym} = \@vals;
+	    last;
+	}
+	elsif ($sym eq '.') {
+	    $slurpy = 1;
+	    next;
+	}
+	else {
+	    $env{$sym} = shift @vals;
+	}
+    }
+    return \%env;
 }
 
 sub merge_envs {
@@ -335,7 +390,8 @@ sub set_var {			# setf
     my ($var, $env, $val) = @_;
     my $this_env = $$env{env};
     if (exists $$this_env{$var}) {
-	return $$env{env}->{$var} = $val;
+	$$env{env}->{$var} = $val;
+	return $val;
     }
     else {
 	if ($$env{parent_env}) {

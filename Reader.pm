@@ -76,7 +76,45 @@ sub scheme_read {
 	    redo LOOP;
 	}
     }
-    return $obj;
+    
+    my $zerop = 0;
+    {
+	no warnings;
+	if ($obj eq '0') {
+	    $zerop = 1;
+	}
+    }
+
+    if (wantarray) {
+	return ($obj, $zerop);
+    }
+    else {
+	return $obj;
+    }
+}
+
+sub scheme_read_delimited_list {
+    my ($stream, $term_char) = @_;
+    my @lst = ();
+
+    unless (ref $stream eq "CODE") {
+	$stream = make_scheme_stream($stream);
+    }
+
+    my $char = $stream->('peek');
+    while ($char ne $term_char) {
+	my ($thing, $zerop) = scheme_read($stream, $term_char);
+	if ($zerop) {
+	    push @lst, '0';
+	}
+	elsif (defined($thing)) {
+	    push @lst, $thing;
+	}
+	$char = $stream->('peek');
+    }
+
+    $stream->('read', 1);
+    return \@lst;
 }
 
 sub scheme_read_from_file {
@@ -93,25 +131,6 @@ sub scheme_read_from_file {
     }
 
     return \@lst;    
-}
-
-sub scheme_read_delimited_list {
-    my ($stream, $term_char) = @_;
-    my @lst = ();
-
-    unless (ref $stream eq "CODE") {
-	$stream = make_scheme_stream($stream);
-    }
-
-    my $char = $stream->('peek');
-    while ($char ne $term_char) {
-	my $thing = scheme_read($stream, $term_char);
-	push @lst, defined($thing) ? $thing : '0';
-	$char = $stream->('peek');
-    }
-
-    $stream->('read', 1);
-    return \@lst;
 }
 
 sub make_scheme_stream {
@@ -147,7 +166,7 @@ sub make_scheme_stream {
 		    return "Buffer: $buffer\nStream: $stream";
 		},
 		peek => sub {
-		    if ($buffer) {
+		    if ($buffer ne '') {
 			return '' . substr($buffer, 0, 1);
 		    }
 		    else {
