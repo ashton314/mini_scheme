@@ -130,7 +130,8 @@ sub scheme_read_from_file {
 	push @lst, $thing;
     }
 
-    return \@lst;    
+    @lst = grep { defined } @lst;
+    return \@lst;
 }
 
 sub make_scheme_stream {

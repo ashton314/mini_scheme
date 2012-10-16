@@ -9,169 +9,16 @@ use Scalar::Util;
 use Reader;
 
 my %TRACED_FUNCTIONS = ();
-my %GLOBAL_ENV = (
-    parent_env => undef,
-    env => {
-	quit => {
-	    closure_env => {},
-	    args        => [],
-	    lambda_expr => undef,
-	    body        => sub {
-		print "Happy Happy Joy Joy\n";
-		exit;
-	    },
-	},
-	apply => {
-	    closure_env => {},
-	    args        => ['function', 'args'],
-	    lambda_expr => undef,
-	    body        => sub {
-		my $env = shift;
-		my $func = find_var('function', $env);
-		my $args = find_var('args', $env);
-	    },
-	},
-	'=' => {
-	    closure_env => {},
-	    args        => ['.', 'args'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my @args = @{ find_var('args', $env) };
-		(print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- =\n" && return undef) if scalar @args < 2;
-		my $thing = shift @args;
-		foreach (@args) {
-		    return '#f' if $_ != $thing;
-		}
-		return '#t';
-	    },
-	},
-	'+' => {
-	    closure_env => {},
-	    args        => ['.', 'args'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my $args = find_var('args', $env);
-		my $sum = 0;
-		map { $sum += $_ } @{ $args };
-		return $sum;
-	    },
-	},
-	'-' => {
-	    closure_env => {},
-	    args        => ['.', 'args'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my $args = find_var('args', $env);
-		my $sum = 0;
-		map { $sum -= $_ } @{ $args };
-		return $sum;
-	    },
-	},
-	'*' => {
-	    closure_env => {},
-	    args        => ['.', 'args'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my $args = find_var('args', $env);
-		my $prod = 1;
-		map { $prod *= $_ } @{ $args };
-		return $prod;
-	    },
-	},
-	'/' => {
-	    closure_env => {},
-	    args        => ['.', 'args'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my $args = find_var('args', $env);
-		my $quot = 1;
-		map { $quot /= $_ } @{ $args };
-		return $quot;
-	    },
-	},
-	'mod' => {
-	    closure_env => {},
-	    args        => ['.', 'args'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my $args = find_var('args', $env);
-		my $rem = 0;
-		map { $rem %= $_ } @{ $args };
-		return $rem;
-	    },
-	},
-	'write' => {
-		    closure_env => {},
-		    args        => ['string'],
-		    lambda_expr => undef,
-		    body => sub {
-			my $env = shift;
-			my $obj = find_var('string', $env);
-			print to_string($obj);
-			return undef;
-		    },
-		   },
-	closure_env => {
-	    closure_env => {},
-	    args        => ['symbol'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my $obj = find_var('symbol', $env);
-		if (ref $obj eq 'HASH') {
-		    print Dumper($$obj{closure_env}) . "\n";
-		    return undef;
-		}
-		else {
-		    print "Not a function.\n";
-		    return undef;
-		}
-	    },
-	},
-	env_symbols => {
-			closure_env => {},
-			args        => [],
-			lambda_expr => [],
-			body => sub {
-			    my $env = shift;
-			    my @syms = keys %{ $$env{env} };
-			    return \@syms;
-			},
-		       },
-	env_dump => {
-		closure_env => {},
-		args        => [],
-		lambda_expr => [],
-		body => sub {
-		    my $env = shift;
-		    print Dumper( $$env{env} );
-		    return undef;
-		},
-	       },
-	trace => {
-	    closure_env => {},
-	    args        => ['symbol'],
-	    lambda_expr => undef,
-	    body => sub {
-		my $env = shift;
-		my $func = find_var('symbol', $env);
-		$TRACED_FUNCTIONS{$func} = (exists $TRACED_FUNCTIONS{$func} &&
-					    $TRACED_FUNCTIONS{$func}) ? 0 : 1;
-		print $TRACED_FUNCTIONS{$func} ? "TRACED\n" : "UNTRACED\n";
-		return undef;
-	    },
-	},
-    },
-    );
-
+my %MACROS           = ();
+my %GLOBAL_ENV       = Special_forms();
 
 REPL: {
+    my $init_fh;
+    if (open $init_fh, '<', 'init.scm') {
+	my $data = scheme_read_from_file($init_fh);
+	map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
+    }
+
     print "* ";
     my $expr;
   INPUT: {
@@ -263,7 +110,7 @@ sub scheme_analyze {
 		    for my $expr (@exprs[0..($#exprs-1)]) {
 			$expr->($env);
 		    }
-		    return $exprs[$#exprs]->($env);
+		    return $exprs[$#exprs]->($env); # Deep recursion here
 		};
 	    }
 	    when ('lambda') {
@@ -281,6 +128,9 @@ sub scheme_analyze {
 			    body        => $body,
 			   };
 		};
+	    }
+	    when (exists $MACROS{$_}) {
+		
 	    }
 	    default {
 
@@ -403,4 +253,189 @@ sub set_var {			# setf
 	    return undef;
 	}
     }
+}
+
+sub Special_forms {
+    return (
+	parent_env => undef,
+	env => {
+	    '#t' => '#t',
+	    '#f' => '#f',
+	    quit => {
+		closure_env => {},
+		args        => [],
+		lambda_expr => undef,
+		body        => sub {
+		    print "Happy Happy Joy Joy\n";
+		    exit;
+		},
+	    },
+	    apply => {
+		closure_env => {},
+		args        => ['function', 'args'],
+		lambda_expr => undef,
+		body        => sub {
+		    my $env = shift;
+		    my $func = find_var('function', $env);
+		    my $args = find_var('args', $env);
+		},
+	    },
+	    '=' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my @args = @{ find_var('args', $env) };
+		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- =\n" && return undef) if scalar @args < 2;
+		    my $thing = shift @args;
+		    foreach (@args) {
+			return '#f' if $_ != $thing;
+		    }
+		    return '#t';
+		},
+	    },
+	    '+' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $args = find_var('args', $env);
+		    my $sum = 0;
+		    map { $sum += $_ } @{ $args };
+		    return $sum;
+		},
+	    },
+	    '-' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $args = find_var('args', $env);
+		    my $sum = 0;
+		    map { $sum -= $_ } @{ $args };
+		    return $sum;
+		},
+	    },
+	    '*' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $args = find_var('args', $env);
+		    my $prod = 1;
+		    map { $prod *= $_ } @{ $args };
+		    return $prod;
+		},
+	    },
+	    '/' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $args = find_var('args', $env);
+		    my $quot = 1;
+		    map { $quot /= $_ } @{ $args };
+		    return $quot;
+		},
+	    },
+	    'mod' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $args = find_var('args', $env);
+		    my $rem = shift @{ $args };
+		    map { $rem %= $_ } @{ $args };
+		    return $rem;
+		},
+	    },
+	    'write' => {
+		args        => ['.', 'strings'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $obj = find_var('strings', $env);
+		    map { print to_string($_) } @{ $obj };
+		    return undef;
+		    closure_env => {},
+		},
+	    },
+	    'write-err' => {
+		closure_env => {},
+		args        => ['.', 'strings'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $obj = find_var('strings', $env);
+		    map { print STDERR to_string($_) } @{ $obj };
+		    return undef;
+		},
+	    },
+	    terpri => {
+		closure_env => {},
+		args        => [],
+		lambda_expr => undef,
+		body => sub {
+		    print STDERR "\n";
+		    return undef;
+		},
+	    },
+	    closure_env => {
+		closure_env => {},
+		args        => ['symbol'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $obj = find_var('symbol', $env);
+		    if (ref $obj eq 'HASH') {
+			print Dumper($$obj{closure_env}) . "\n";
+			return undef;
+		    }
+		    else {
+			print "Not a function.\n";
+			return undef;
+		    }
+		},
+	    },
+	    env_symbols => {
+		closure_env => {},
+		args        => [],
+		lambda_expr => [],
+		body => sub {
+		    my $env = shift;
+		    my @syms = keys %{ $$env{env} };
+		    return \@syms;
+		},
+	    },
+	    env_dump => {
+		closure_env => {},
+		args        => [],
+		lambda_expr => [],
+		body => sub {
+		    my $env = shift;
+		    print Dumper( $$env{env} );
+		    return undef;
+		},
+	    },
+	    trace => {
+		closure_env => {},
+		args        => ['symbol'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $func = find_var('symbol', $env);
+		    $TRACED_FUNCTIONS{$func} = (exists $TRACED_FUNCTIONS{$func} &&
+						$TRACED_FUNCTIONS{$func}) ? 0 : 1;
+		    print $TRACED_FUNCTIONS{$func} ? "TRACED\n" : "UNTRACED\n";
+		    return undef;
+		},
+	    },
+	},
+	);
 }
