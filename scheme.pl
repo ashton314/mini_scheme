@@ -297,7 +297,8 @@ sub scheme_analyze {
 		    my @arg_vals = map { $_->($env) } @arg_procs;
 		    my @arg_vals_copy = @arg_vals;
 		    my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
-		    my $nenv = merge_envs($env, $arg_hash);
+		    my $nenv = merge_envs($func{closure_env},
+					  $arg_hash);
 
 		    if ($TRACED_FUNCTIONS{$expression[0]}) {
 			print "CALLING FUNCTION: @{ [$expression[0]] }\n";
