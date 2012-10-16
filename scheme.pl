@@ -48,7 +48,17 @@ sub scheme_analyze {
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
 	    when ('string') { return sub { $$expr[1]; }; }
-	    when ('quote') { return sub { $$expr[1]; }; }
+	    when ('quote') { 
+		given (ref $$expr[1]) {
+		    when ('ARRAY') {
+			my $cons = array_to_cons($$expr[1]);
+			return sub { $cons; };
+		    }
+		    default {
+			return sub { $$expr[1]; };
+		    }
+		}
+	    }
 	    when ('set!') {
 		my $var = $$expr[1];
 		my $val = scheme_analyze($$expr[2]);
@@ -419,9 +429,9 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my $args = find_var('args', $env);
-		    my $quot = 1;
-		    map { $quot /= $_ } @{ $args };
+		    my @args = @{ find_var('args', $env) };
+		    my $quot = shift @args;
+		    map { $quot /= $_ } @args;
 		    return $quot;
 		},
 	    },
@@ -468,6 +478,17 @@ sub Special_forms {
 		    return undef;
 		},
 	    },
+	    dumper => {
+		closure_env => {},
+		args        => ['thing'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $obj = find_var('thing', $env);
+		    print STDERR Dumper($obj) . "\n";
+		    return undef;
+		},
+		      },
 	    closure_env => {
 		closure_env => {},
 		args        => ['symbol'],
