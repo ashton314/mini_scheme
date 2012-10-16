@@ -43,8 +43,22 @@ sub array_to_cons {
     else {
 	my @things = @{ $self };
 	my $end = pop @things;
-	my $cons = cons($end, 'nil');
-	$cons = cons(pop @things, $cons) while @things;
+	my $cons = cons((ref $end eq 'ARRAY' ? array_to_cons($end) : $end),
+			'nil');
+	while (@things) {
+	    my $obj = pop @things;
+	    if ($obj eq '.') {
+		my $next = pop @things;
+		$cons = cons((ref $next eq 'ARRAY' ? array_to_cons($next)
+			                           : $next),
+			     $cons->{car});
+	    }
+	    else {
+		$cons = cons((ref $obj eq 'ARRAY' ? array_to_cons($obj)
+			                          : $obj),
+			     $cons);
+	    }
+	}
 	return $cons;
     }
 }
@@ -59,10 +73,10 @@ sub cons_to_array {
 	return [cons_to_array($car), cons_to_array($self->{cdr})];
     }
     elsif ($self->{cdr} eq 'nil' or ref $self->{cdr} ne 'Cons') {
-	return $self->{cdr};
+	return $self->{cdr};	# Something might go wrong here
     }
     else {
-	return [$car, cons_to_array($self->{cdr})];
+	return ($car, cons_to_array($self->{cdr}));
     }
 }
 
