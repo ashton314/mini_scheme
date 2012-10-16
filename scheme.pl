@@ -7,6 +7,7 @@ use Data::Dumper;
 use Scalar::Util;
 
 use Reader;
+use Cons;
 
 my %TRACED_FUNCTIONS = ();
 my %MACROS           = ();
@@ -26,7 +27,7 @@ REPL: {
 	redo INPUT unless defined($expr);
     }
     my $to_print = scheme_eval($expr, \%GLOBAL_ENV);
-    print "\n" . (defined($to_print) ? to_string($to_print) : ";UNDEF") . "\n";
+   print "\n" . (defined($to_print) ? to_string($to_print) : "; UNDEF") . "\n";
     redo REPL;
 }
 
@@ -178,8 +179,11 @@ sub to_string {
     my $ret = '';
 
     given (ref $obj) {
+	when ('Cons') {
+	    $ret = $obj->to_string(\&to_string);
+	}
 	when ('ARRAY') {
-	    $ret .= '(';
+	    $ret .= '#(';
 	    $ret .= shift @{ $obj };
 	    map { $ret .= ' ' . to_string($_) } @{ $obj };
 	    $ret .= ')';
@@ -261,6 +265,8 @@ sub Special_forms {
 	env => {
 	    '#t' => '#t',
 	    '#f' => '#f',
+	    nil  => 'nil',
+            t    => 't',
 	    quit => {
 		closure_env => {},
 		args        => [],
@@ -270,61 +276,73 @@ sub Special_forms {
 		    exit;
 		},
 	    },
-		car => {
-			closure_env => {},
-			args        => ['list'],
-			lambda_expr => undef,
-			body => sub {
-			    my $env = shift;
-			    my $lst = find_var('list', $env);
-			    if (ref $lst eq 'ARRAY') {
-				return $$lst[0];
-			    }
-			    else {
-				print STDERR "IN FUNCTION CAR: ARGUMENT IS NOT A LIST.\n";
-				return undef;
-			    }
-			},
-		       },
-		cdr => {
-			closure_env => {},
-			args        => ['list'],
-			lambda_expr => undef,
-			body => sub {
-			    my $env = shift;
-			    my $lst = find_var('list', $env);
-			    if (ref $lst eq 'ARRAY') {
-				my @list = @{ $lst };
-				my @list2 = @list[1..$#list];
-				return \@list2;
-			    }
-			    else {
-				print STDERR "IN FUNCTION CDR: ARGUMENT IS NOT A LIST.\n";
-				return undef;
-			    }
-			},
-			
-		       },
-		cons => {
-			 closure_env => {},
-			 args        => ['arg1', 'arg2'],
-			 lambda_expr => undef,
-			 body => sub {
-			     my $env = shift;
-			     my ($arg1, $arg2) = 
-			       map { find_var($_, $env) } qw(arg1 arg2);
-			     return [$arg1, $arg2];
-			 },
-			},
-		list => {
-			 closure_env => {},
-			 args        => ['.', 'lst'],
-			 lambda_expr => undef,
-			 body => sub {
-			     my $env = shift;
-			     return find_var('lst', $env);
-			 },
-			},
+	    car => {
+		closure_env => {},
+		args        => ['cons-cell'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $cons = find_var('cons-cell', $env);
+		    if (ref $cons eq 'ARRAY') {
+			return $$cons[0];
+		    }
+		    elsif (ref $cons eq 'Cons') {
+			return $cons->car;
+		    }
+		    else {
+		print STDERR "IN FUNCTION CAR: ARGUMENT IS NOT A LIST.\n";
+			return undef;
+		    }
+		},
+	    },
+	    cdr => {
+		closure_env => {},
+		args        => ['cons-cell'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $cons = find_var('cons-cell', $env);
+		    if (ref $cons eq 'ARRAY') {
+			my @list = @{ $cons };
+			my @list2 = @list[1..$#list];
+			return \@list2;
+		    }
+		    elsif (ref $cons eq 'Cons') {
+			return $cons->cdr;
+		    }
+		    else {
+		print STDERR "IN FUNCTION CDR: ARGUMENT IS NOT A LIST.\n";
+			return undef;
+		    }
+		},
+		
+	    },
+	    cons => {
+		closure_env => {},
+		args        => ['arg1', 'arg2'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my ($arg1, $arg2) = 
+			map { find_var($_, $env) } qw(arg1 arg2);
+		    return cons($arg1, $arg2);
+		},
+	    },
+	    list => {
+		closure_env => {},
+		args        => ['.', 'lst'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my @things = @{ find_var('lst', $env) };
+		    my $end = pop @things;
+		    my $cons = cons($end, 'nil');
+		    while (@things) {
+			$cons = cons(pop @things, $cons);
+		    }
+		    return $cons;
+		},
+	    },
 	    apply => {
 		closure_env => {},
 		args        => ['function', 'args'],
@@ -376,7 +394,7 @@ sub Special_forms {
 		    my $sum = shift @args;
 		    if (scalar @args) {
 			map { $sum -= $_ } @args;
-			}
+		    }
 		    else {
 			$sum *= -1;
 		    }
