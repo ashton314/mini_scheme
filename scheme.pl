@@ -270,6 +270,61 @@ sub Special_forms {
 		    exit;
 		},
 	    },
+		car => {
+			closure_env => {},
+			args        => ['list'],
+			lambda_expr => undef,
+			body => sub {
+			    my $env = shift;
+			    my $lst = find_var('list', $env);
+			    if (ref $lst eq 'ARRAY') {
+				return $$lst[0];
+			    }
+			    else {
+				print STDERR "IN FUNCTION CAR: ARGUMENT IS NOT A LIST.\n";
+				return undef;
+			    }
+			},
+		       },
+		cdr => {
+			closure_env => {},
+			args        => ['list'],
+			lambda_expr => undef,
+			body => sub {
+			    my $env = shift;
+			    my $lst = find_var('list', $env);
+			    if (ref $lst eq 'ARRAY') {
+				my @list = @{ $lst };
+				my @list2 = @list[1..$#list];
+				return \@list2;
+			    }
+			    else {
+				print STDERR "IN FUNCTION CDR: ARGUMENT IS NOT A LIST.\n";
+				return undef;
+			    }
+			},
+			
+		       },
+		cons => {
+			 closure_env => {},
+			 args        => ['arg1', 'arg2'],
+			 lambda_expr => undef,
+			 body => sub {
+			     my $env = shift;
+			     my ($arg1, $arg2) = 
+			       map { find_var($_, $env) } qw(arg1 arg2);
+			     return [$arg1, $arg2];
+			 },
+			},
+		list => {
+			 closure_env => {},
+			 args        => ['.', 'lst'],
+			 lambda_expr => undef,
+			 body => sub {
+			     my $env = shift;
+			     return find_var('lst', $env);
+			 },
+			},
 	    apply => {
 		closure_env => {},
 		args        => ['function', 'args'],
@@ -278,6 +333,9 @@ sub Special_forms {
 		    my $env = shift;
 		    my $func = find_var('function', $env);
 		    my $args = find_var('args', $env);
+		    my $nenv = merge_envs($env, bind_vars($$func{args},
+							  $args));
+		    return $$func{body}->($env);
 		},
 	    },
 	    '=' => {
@@ -313,9 +371,15 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my $args = find_var('args', $env);
-		    my $sum = 0;
-		    map { $sum -= $_ } @{ $args };
+		    my $arg_ref = find_var('args', $env);
+		    my @args = @{ $arg_ref };
+		    my $sum = shift @args;
+		    if (scalar @args) {
+			map { $sum -= $_ } @args;
+			}
+		    else {
+			$sum *= -1;
+		    }
 		    return $sum;
 		},
 	    },
@@ -419,7 +483,7 @@ sub Special_forms {
 		lambda_expr => [],
 		body => sub {
 		    my $env = shift;
-		    print Dumper( $$env{env} );
+		    print Dumper( $env );
 		    return undef;
 		},
 	    },
