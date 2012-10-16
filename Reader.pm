@@ -201,7 +201,7 @@ Reader -- A suite of functions to read LISP data
    use Data::Dumper;
    use Reader;
 
-   my $array_ref = scheme_read(\*STDIN);
+   my $array_ref = scheme_read(0, "\n");
    print "LISP structure read in: " . Dumper($array_ref) . "\n";
 
 =head1 DESCRIPTION
@@ -219,7 +219,7 @@ from L<Quantum::Superpositions>.)
 
 =item scheme_read
 
-Takes a file handle of some sort.
+Takes a file handle and a character that will terminate a lisp expression. The file handle defaults to STDIN. An argument of 0 will trigger the default. For REPLs, use "\n" as the terminating character.
 
 =item make_scheme_stream
 
@@ -235,20 +235,22 @@ terminating char. Returns an array ref of all objects read.
 
 =item scheme_read_from_file
 
-Given a file handle, will continuously call L</scheme_read> on the file handle until the file's contents have been exhausted.
+Given a file handle, will continuously call L</scheme_read> on the file handle until the file's contents have been exhausted. If the file does not have a newline as the final character, the function may hang.
 
 =back
 
 =head1 EXAMPLES
 
-A one-time use REPL: (just the Read part)
+A simple REPL:
 
    use Data::Dumper;
    use Reader;
    
-   print "Expr: ";
-   my $thing = scheme_read(0);
-   print "Thing: " . Dumper($thing) . "\n";
+   while (1) {
+      print "* ";
+      my $thing = scheme_read(0, "\n");
+      print "Thing: " . Dumper($thing) . "\n";
+   }
 
 
 Reading data from a file:
@@ -261,6 +263,15 @@ Reading data from a file:
    my $data = scheme_read_from_file($fh);
    print "From file:\n" . Dumper($data) . "\n";
 
+=head1 BUGS
+
+=over 4
+
+=item *
+
+The function L</scheme_read_from_file> may cause the program to hang if the file to be read does not end with a newline character.
+
+=back
 
 =head1 AUTHOR
 
