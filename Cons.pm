@@ -68,16 +68,26 @@ sub cons_to_array {
     print "Argument is not a Cons. -- cons_to_array\n" && return undef
       unless ref $self eq 'Cons';
 
-    my $car = $self->{car};
-    if (ref $car eq 'Cons') {
-	return [cons_to_array($car), @{ cons_to_array($self->{cdr}) }];
+    my @list = ();
+    my $this = $self;
+  LOOP: {
+	my $car = $this->{car};
+	if (ref $car eq 'Cons') {
+	    push @list, $car->cons_to_array();
+	}
+	else {
+	    push @list, $car;
+	}
+	if (ref $this->{cdr} eq 'Cons') {
+	    $this = $this->{cdr};
+	    redo LOOP;
+	}
+	else {			# End of list.
+	    push @list, $this->{cdr} unless $this->{cdr} eq 'nil';
+	    last LOOP;
+	}
     }
-    elsif ($self->{cdr} eq 'nil' or ref $self->{cdr} ne 'Cons') {
-	return $self->{cdr};	# Something might go wrong here
-    }
-    else {
-	return [$car, cons_to_array($self->{cdr})];
-    }
+    return \@list;
 }
 
 sub to_string {

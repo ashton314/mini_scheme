@@ -143,7 +143,7 @@ sub scheme_analyze {
 	    when (exists $MACROS{$_}) {
 		
 	    }
-	    default {
+	    default {		# Apply
 
 		no warnings;
 
@@ -361,9 +361,12 @@ sub Special_forms {
 		    my $env = shift;
 		    my $func = find_var('function', $env);
 		    my $args = find_var('args', $env);
+
+		    $args = cons_to_array($args) if ref $args eq 'Cons';
+
 		    my $nenv = merge_envs($env, bind_vars($$func{args},
-	(ref $args eq 'Cons' ? \@{ cons_to_array($args) } : $args)));
-		    return $$func{body}->($env);
+							  $args));
+		    return $$func{body}->($nenv);
 		},
 	    },
 	    null => {
@@ -546,7 +549,7 @@ sub Special_forms {
 		    $TRACED_FUNCTIONS{$func} = (exists $TRACED_FUNCTIONS{$func} &&
 						$TRACED_FUNCTIONS{$func}) ? 0 : 1;
 		    print $TRACED_FUNCTIONS{$func} ? "TRACED\n" : "UNTRACED\n";
-		    return undef;
+		    return $func;
 		},
 	    },
 	},
