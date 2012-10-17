@@ -70,13 +70,13 @@ sub cons_to_array {
 
     my $car = $self->{car};
     if (ref $car eq 'Cons') {
-	return [cons_to_array($car), cons_to_array($self->{cdr})];
+	return [cons_to_array($car), @{ cons_to_array($self->{cdr}) }];
     }
     elsif ($self->{cdr} eq 'nil' or ref $self->{cdr} ne 'Cons') {
 	return $self->{cdr};	# Something might go wrong here
     }
     else {
-	return ($car, cons_to_array($self->{cdr}));
+	return [$car, cons_to_array($self->{cdr})];
     }
 }
 

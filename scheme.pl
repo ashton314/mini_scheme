@@ -362,10 +362,20 @@ sub Special_forms {
 		    my $func = find_var('function', $env);
 		    my $args = find_var('args', $env);
 		    my $nenv = merge_envs($env, bind_vars($$func{args},
-							  $args));
+	(ref $args eq 'Cons' ? \@{ cons_to_array($args) } : $args)));
 		    return $$func{body}->($env);
 		},
 	    },
+	    null => {
+		closure_env => {},
+		args        => ['cons-cell'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $cons = find_var('cons-cell', $env);
+		    return $cons->null ? '#t' : '#f';
+		},
+		    },
 	    '=' => {
 		closure_env => {},
 		args        => ['.', 'args'],
