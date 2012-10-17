@@ -376,7 +376,12 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('cons-cell', $env);
-		    return $cons->null ? '#t' : '#f';
+		    if (ref $cons eq 'Cons') {
+			return $cons->null ? '#t' : '#f';
+		    }
+		    else {
+			return $cons eq 'nil' ? '#t' : '#f';
+		    }
 		},
 		    },
 	    '=' => {

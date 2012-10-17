@@ -36,6 +36,7 @@ sub null {
 
 sub array_to_cons {
     my $self = shift;
+
     if (ref $self ne 'ARRAY') {
 	print STDERR "Argument is not an array ref. -- array_to_cons\n";
 	return undef;
@@ -43,6 +44,7 @@ sub array_to_cons {
     else {
 	my @things = @{ $self };
 	my $end = pop @things;
+	return 'nil' unless $end;
 	my $cons = cons((ref $end eq 'ARRAY' ? array_to_cons($end) : $end),
 			'nil');
 	while (@things) {
