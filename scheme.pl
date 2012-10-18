@@ -153,7 +153,15 @@ sub scheme_analyze {
 
 		return sub {
 		    my $env = shift;
-		    my %func = %{ $func_proc->($env) };
+		    my $func_ref;
+		    eval {
+			$func_ref = $func_proc->($env);
+		    };
+		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
+		    	print STDERR "ERROR: bad function: $expression[0]\n";
+		    	return undef;
+		    }
+		    my %func = %{ $func_ref };
 		    my @arg_syms = @{ $func{args} };
 		    my @arg_vals = map { $_->($env) } @arg_procs;
 		    my @arg_vals_copy = @arg_vals;
@@ -213,7 +221,7 @@ sub bind_vars {
     my $slurpy = 0;
     for my $sym (@syms) {
 	if ($slurpy) {
-	    $env{$sym} = \@vals;
+	    $env{$sym} = array_to_cons(\@vals);
 	    last;
 	}
 	elsif ($sym eq '.') {
@@ -277,6 +285,24 @@ sub Special_forms {
 	    '#f' => '#f',
 	    nil  => 'nil',
             t    => 't',
+	    'eq?' => {
+		closure_env => {},
+		args        => ['.', 'things'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my @things = @{ find_var('things', $env) };
+		    (print "ERROR: Got @{ [scalar @things] } args and expected at least 2 -- eq?\n" && return undef) if scalar @things < 2;
+		    my $thing = shift @things;
+		    foreach (@things) {
+			if (ref $thing ne ref $_ or
+			    "$thing" ne "$_") {
+			    return '#f';
+			}
+		    }
+		    return '#t';
+		},
+		     },
 	    quit => {
 		closure_env => {},
 		args        => [],
@@ -384,6 +410,36 @@ sub Special_forms {
 		    }
 		},
 		    },
+	    '>' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my @args = @{ find_var('args', $env) };
+		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- >\n" && return undef) if scalar @args < 2;
+		    my $thing = shift @args;
+		    foreach (@args) {
+			return '#f' if $_ > $thing;
+		    }
+		    return '#t';
+		},
+		   },
+	    '<' => {
+		closure_env => {},
+		args        => ['.', 'args'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my @args = @{ find_var('args', $env) };
+		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- <\n" && return undef) if scalar @args < 2;
+		    my $thing = shift @args;
+		    foreach (@args) {
+			return '#f' if $_ < $thing;
+		    }
+		    return '#t';
+		},
+		   },
 	    '=' => {
 		closure_env => {},
 		args        => ['.', 'args'],
@@ -407,7 +463,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $sum = 0;
-		    map { $sum += $_ } @{ $args };
+		    map { $sum += $_ } @{ cons_to_array($args) };
 		    return $sum;
 		},
 	    },
@@ -471,7 +527,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print to_string($_) } @{ $obj };
+		    map { print to_string($_) } @{ cons_to_array($obj) };
 		    return undef;
 		    closure_env => {},
 		},
@@ -483,10 +539,25 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print STDERR to_string($_) } @{ $obj };
+		    while ($obj->car) {
+			print STDERR to_string($obj);
+			$obj = $obj->cdr;
+			last if $obj eq 'nil';
+		    }
 		    return undef;
 		},
 	    },
+	    'sleep' => {
+			closure_env => {},
+			args        => ['num'],
+			lambda_expr => undef,
+			body => sub {
+			    my $env = shift;
+			    my $secs = find_var('num', $env);
+			    sleep $secs;
+			    return undef;
+			},
+		       },
 	    terpri => {
 		closure_env => {},
 		args        => [],
@@ -496,6 +567,17 @@ sub Special_forms {
 		    return undef;
 		},
 	    },
+	    fle => {
+		    closure_env => {},
+		    args => ['func'],
+		    lambda_expr => undef,
+		    body => sub {
+			my $env = shift;
+			my $func = find_var('func', $env);
+			print to_string(array_to_cons($func->{lambda_expr}));
+			return undef;
+		    },
+		   },
 	    dumper => {
 		closure_env => {},
 		args        => ['thing'],

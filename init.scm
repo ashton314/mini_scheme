@@ -25,6 +25,22 @@
       (reduce func (cons (func (car lst) (car (cdr lst)))
 			 (cdr (cdr lst))))))
 
+(define (find-if func lst)
+  (if (null lst)
+      #f
+      (if (func (car lst))
+	  (car lst)
+	  (find-if func (cdr lst)))))
+
+(define (map2 func . lsts)
+  (if (find-if null lsts)
+      nil
+      (cons (apply func (foreach car lsts))
+	    nil)))
+
+(define (inc n)
+  (+ n 1))
+
 ;; (defmacro let (forms . body)
 ;;   (cons (list 'lambda (map car forms) body)
 ;;      (map cadr forms)))
