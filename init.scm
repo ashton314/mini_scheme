@@ -36,7 +36,7 @@
   (if (find-if null lsts)
       nil
       (cons (apply func (foreach car lsts))
-	    nil)))
+	    (apply map2 (cons func (foreach cdr lsts))))))
 
 (define (inc n)
   (+ n 1))

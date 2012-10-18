@@ -141,7 +141,7 @@ sub scheme_analyze {
 		};
 	    }
 	    when (exists $MACROS{$_}) {
-		
+
 	    }
 	    default {		# Apply
 
@@ -390,7 +390,8 @@ sub Special_forms {
 
 		    $args = cons_to_array($args) if ref $args eq 'Cons';
 
-		    my $nenv = merge_envs($env, bind_vars($$func{args},
+		    my $nenv = merge_envs($$func{closure_env},
+					  bind_vars($$func{args},
 							  $args));
 		    return $$func{body}->($nenv);
 		},
