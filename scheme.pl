@@ -370,7 +370,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @things = @{ find_var('lst', $env) };
+		    my @things = @{ cons_to_array(find_var('lst', $env)) };
 		    my $end = pop @things;
 		    my $cons = cons($end, 'nil');
 		    while (@things) {
@@ -416,7 +416,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
+		    my @args = @{ cons_to_array(find_var('args', $env)) };
 		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- >\n" && return undef) if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -431,7 +431,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
+		    my @args = @{ cons_to_array(find_var('args', $env)) };
 		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- <\n" && return undef) if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -446,7 +446,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
+		    my @args = @{ cons_to_array(find_var('args', $env)) };
 		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- =\n" && return undef) if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -474,7 +474,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $arg_ref = find_var('args', $env);
-		    my @args = @{ $arg_ref };
+		    my @args = @{ cons_to_array($arg_ref) };
 		    my $sum = shift @args;
 		    if (scalar @args) {
 			map { $sum -= $_ } @args;
@@ -493,7 +493,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $prod = 1;
-		    map { $prod *= $_ } @{ $args };
+		    map { $prod *= $_ } @{ cons_to_array($args) };
 		    return $prod;
 		},
 	    },
@@ -503,7 +503,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
+		    my @args = @{ cons_to_array(find_var('args', $env)) };
 		    my $quot = shift @args;
 		    map { $quot /= $_ } @args;
 		    return $quot;
@@ -516,8 +516,9 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
-		    my $rem = shift @{ $args };
-		    map { $rem %= $_ } @{ $args };
+		    my @vals = @{ cons_to_array($args) };
+		    my $rem = shift @vals;
+		    map { $rem %= $_ } @vals;
 		    return $rem;
 		},
 	    },
