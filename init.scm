@@ -32,14 +32,18 @@
 	  (car lst)
 	  (find-if func (cdr lst)))))
 
-(define (map2 func . lsts)
+(define (map func . lsts)
   (if (find-if null lsts)
       nil
       (cons (apply func (foreach car lsts))
-	    (apply map2 (cons func (foreach cdr lsts))))))
+	    (apply map (cons func (foreach cdr lsts))))))
 
-(define (inc n)
-  (+ n 1))
+;; (let ((a 1)
+;;       (b 2))
+;;   (+ a b)
+;;   (- a b))
+
+;; ((lambda (a b) (+ a b) (- a b)) 1 2)
 
 ;; (defmacro let (forms . body)
 ;;   (cons (list 'lambda (map car forms) body)
