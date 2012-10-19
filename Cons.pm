@@ -70,7 +70,7 @@ sub array_to_cons {
 
 sub cons_to_array {
     my $self = shift;
-    my $depth = shift;
+    my $depth = shift // -1;
 
     print "Argument is not a Cons. -- cons_to_array\n" && return undef
       unless ref $self eq 'Cons';

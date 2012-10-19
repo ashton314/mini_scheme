@@ -88,7 +88,7 @@ sub scheme_analyze {
 					: $_ } @expr;
 		my $arg_hash = bind_vars($macro_args, \@to_expand);
 		my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
-# Keep this	print STDERR "Expansion: @{ [to_string($expanded)] }\n";
+#		print STDERR "Expansion: @{ [to_string($expanded)] }\n";
 		my $to_analyze = cons_to_array($expanded);
 		my $proc = scheme_analyze($to_analyze);
 		return sub {
@@ -145,12 +145,13 @@ sub scheme_analyze {
 		my $tcl  = scheme_analyze($$expr[2]);
 		my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3]) : 0;
 		return sub {
-		    if ($pred->($_[0]) ne '#f') {
-			return $tcl->($_[0]);
+		    my $env = shift;
+		    if ($pred->($env) ne '#f') {
+			return $tcl->($env);
 		    }
 		    else {
 			if ($fcl) {
-			    return $fcl->($_[0]);
+			    return $fcl->($env);
 			}
 			else {
 			    return '#f';
@@ -336,7 +337,8 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @things = @{ find_var('things', $env) };
+		    my @things = @{ cons_to_array(find_var('things', $env), 0) };
+		    print "Things: @things\n";
 		    (print "ERROR: Got @{ [scalar @things] } args and expected at least 2 -- eq?\n" && return undef) if scalar @things < 2;
 		    my $thing = shift @things;
 		    foreach (@things) {
@@ -370,8 +372,12 @@ sub Special_forms {
 		    elsif (ref $cons eq 'Cons') {
 			return $cons->car;
 		    }
+		    elsif ($cons eq 'nil') {
+			return 'nil';
+		    }
 		    else {
-		print STDERR "IN FUNCTION CAR: ARGUMENT IS NOT A LIST.\n";
+			print STDERR "IN FUNCTION CAR: $cons IS NOT A LIST.\n";
+			print STDERR "CAR: CALLER: @{ [caller] }\n";
 			return undef;
 		    }
 		},

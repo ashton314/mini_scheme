@@ -75,6 +75,13 @@
 (defmacro (unless test . body)
   (list 'if (list 'not test) (cons 'begin body)))
 
+(defmacro (and . rest)
+  (define (expander lst)
+    (if (null lst)
+	#t
+	(list 'if (car lst) (expander (cdr lst)))))
+  (expander rest))
+
 ;;; Non-bootstrapping functions
 
 (define (remove-if func lst)
@@ -117,7 +124,7 @@
 			  raw-result))))
 
 (define (bq-process x)
-  (write-err x)
+  (write-err "To process: " x)
   (terpri)
   (cond ((atom x)
 	 (list 'bq-quote x))
@@ -138,3 +145,36 @@
 			   (cons (reverse q) (list (cadr p)))))
 		    ((eq? (car p) 'comma-splice)
 		     (write-err "Malformed ,@")))))))
+
+(define (bracket x)
+  (cond ((atom x)
+	 (list 'bq-list (bq-process x)))
+	((eq? (car x) 'comma)
+	 (list 'bq-list (cadr x)))
+	((eq? (car x) 'comma-splice)
+	 (cadr x))
+	(#t (list 'bq-list (bq-process x)))))
+
+(define (bq-remove-tokens x)
+  (cond ((eq? x 'bq-list) 'list)
+	((eq? x 'bq-append) 'append)
+	((eq? x 'bq-nconc) 'nconc)
+	((eq? x 'bq-list) 'list)
+	((eq? x 'bq-quote) 'quote)
+	((atom x) x)
+	((eq? (car x) ('bq-clobberable))
+	 (bq-remove-tokens (cadr x)))
+	((and (eq? (car x) 'bq-list)
+	      (list? (cddr x))
+	      (null (cdddr x)))
+	 (cons 'cons (maptree bq-remove-tokens (cdr x))))
+	(#t (maptree bq-remove-tokens x))))
+
+(define (maptree fn x)
+  (if (atom x)
+      (fn x)
+      (let ((a (fn (car x)))
+	    (d (maptree fn (cdr x))))
+	(if (and (eq? a (car x)) (eq? d (cdr x)))
+	    x
+	    (cons a d)))))
