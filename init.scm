@@ -9,6 +9,9 @@
       1
       (* n (factorial (- n 1)))))
 
+(define (cadr lst)
+  (car (cdr lst)))
+
 (define (length lst)
   (if (null lst)
       0
@@ -38,14 +41,13 @@
       (cons (apply func (foreach car lsts))
 	    (apply map (cons func (foreach cdr lsts))))))
 
-;; (let ((a 1)
-;;       (b 2))
-;;   (+ a b)
-;;   (- a b))
+(defmacro (incf thing)
+  (list 'set! thing (list '+ thing 1)))
 
-;; ((lambda (a b) (+ a b) (- a b)) 1 2)
+(define foo 42)
+(define zoop 13)
 
-;; (defmacro let (forms . body)
-;;   (cons (list 'lambda (map car forms) body)
-;;      (map cadr forms)))
+(defmacro (let forms . body)
+  (cons (list 'lambda (map car forms) (cons 'begin body))
+	(map cadr forms)))
 

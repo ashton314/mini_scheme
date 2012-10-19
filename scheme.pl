@@ -13,13 +13,13 @@ my %TRACED_FUNCTIONS = ();
 my %MACROS           = ();
 my %GLOBAL_ENV       = Special_forms();
 
-REPL: {
-    my $init_fh;
-    if (open $init_fh, '<', 'init.scm') {
-	my $data = scheme_read_from_file($init_fh);
-	map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
-    }
+my $init_fh;
+if (open $init_fh, '<', 'init.scm') {
+    my $data = scheme_read_from_file($init_fh);
+    map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
+}
 
+REPL: {
     print "* ";
     my $expr;
   INPUT: {
@@ -38,12 +38,6 @@ sub scheme_eval {
 
 sub scheme_analyze {
     my $expr = shift;
-
-    ## REMINDER: NEED TO IMPLEMENT MACRO EXPANSION DURING THIS
-    ## PHASE. ADDING SOMETHING TO ANALYZE A MACRO DEFINITION MIGHT BE
-    ## NEEDED. ALSO, THERE MUST BE SOME VARIABLE KEPT THAT REMEMBERS
-    ## MACRO DEFINITIONS DURING COMPILE TIME SO THEY CAN BE EXPANDED
-    ## THERE.
 
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
@@ -65,6 +59,43 @@ sub scheme_analyze {
 		return sub { 
 		    return set_var($var, $_[0], $val->($_[0]));
 		}; }
+	    when ('defmacro') {
+		my @expr = @{ $expr };
+		shift @expr; 	# Knock off that 'defmacro'
+
+		my @arg_list = @{ shift @expr };
+		my $macro = shift @arg_list;
+		my $body = scheme_analyze(['begin', @expr]);
+
+		$MACROS{$macro} = {
+		    body => sub {
+			my ($env, $args) = @_;
+			my $nenv = merge_envs($env, $args);
+			return $body->($nenv);
+		    },
+		    args => \@arg_list,
+		};
+
+		return sub { return $macro; };
+	    }
+	    when (exists $MACROS{$_}) { # Macro expander
+		my %macro = %{ $MACROS{$_} };
+		my ($macro_body, $macro_args) = map { $macro{$_} }
+		  qw(body args);
+		my @expr = @{ $expr };
+		shift @expr;
+		my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
+					: $_ } @expr;
+		my $arg_hash = bind_vars($macro_args, \@to_expand);
+		my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
+#		print STDERR "Expansion: @{ [to_string($expanded)] }\n";
+		my $to_analyze = cons_to_array($expanded);
+		my $proc = scheme_analyze($to_analyze);
+		return sub {
+		    my $env = shift;
+		    return $proc->($env);
+		};
+	    }
 	    when ('define') {
 		my @expr = @{ $expr };
 		my @expression = @{ $expr };
@@ -140,9 +171,6 @@ sub scheme_analyze {
 			   };
 		};
 	    }
-	    when (exists $MACROS{$_}) {
-
-	    }
 	    default {		# Apply
 
 		no warnings;
@@ -215,6 +243,7 @@ sub to_string {
 
 sub bind_vars {
     my ($sym_ref, $val_ref) = @_;
+#    print STDERR "Caller: @{ [caller] }\n";
     my @syms = @{ $sym_ref };
     my @vals = @{ $val_ref };
     my %env = ();
@@ -370,13 +399,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @things = @{ cons_to_array(find_var('lst', $env)) };
-		    my $end = pop @things;
-		    my $cons = cons($end, 'nil');
-		    while (@things) {
-			$cons = cons(pop @things, $cons);
-		    }
-		    return $cons;
+		    return find_var('lst', $env);
 		},
 	    },
 	    apply => {
