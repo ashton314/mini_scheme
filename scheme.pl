@@ -56,7 +56,7 @@ sub scheme_analyze {
 	    when ('set!') {
 		my $var = $$expr[1];
 		my $val = scheme_analyze($$expr[2]);
-		return sub { 
+		return sub {
 		    return set_var($var, $_[0], $val->($_[0]));
 		}; }
 	    when ('defmacro') {
@@ -88,13 +88,29 @@ sub scheme_analyze {
 					: $_ } @expr;
 		my $arg_hash = bind_vars($macro_args, \@to_expand);
 		my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
-#		print STDERR "Expansion: @{ [to_string($expanded)] }\n";
+# Keep this	print STDERR "Expansion: @{ [to_string($expanded)] }\n";
 		my $to_analyze = cons_to_array($expanded);
 		my $proc = scheme_analyze($to_analyze);
 		return sub {
 		    my $env = shift;
 		    return $proc->($env);
 		};
+	    }
+	    when ('while') {
+		my @expr = @{ $expr };
+		shift @expr; 	# Knock off that 'while'
+
+		my $cond = scheme_analyze(shift @expr);
+		my $body = scheme_analyze(['begin', @expr]);
+		return sub {
+		    my $env = shift;
+		    my $res = '#f';
+		    while ($cond->($env) ne '#f') {
+			$res = $body->($env);
+		    }
+		    return $res;
+		};
+
 	    }
 	    when ('define') {
 		my @expr = @{ $expr };
@@ -401,6 +417,31 @@ sub Special_forms {
 		    return find_var('lst', $env);
 		},
 	    },
+	    'not' => {
+		      closure_env => {},
+		      args        => ['obj'],
+		      lambda_expr => undef,
+		      body => sub {
+			  my $env = shift;
+			  my $obj = find_var('obj', $env);
+			  return $obj eq '#f' ? '#t' : '#f';
+		      },
+		     },
+	    'list?' => {
+			closure_env => {},
+			args        => ['obj'],
+			lambda_expr => undef,
+			body => sub {
+			    my $env = shift;
+			    my $obj = find_var('obj', $env);
+			    if (ref $obj ~~ ['ARRAY', 'Cons']) {
+				return '#t';
+			    }
+			    else {
+				return '#f';
+			    }
+			},
+		       },
 	    apply => {
 		closure_env => {},
 		args        => ['function', 'args'],
@@ -562,12 +603,12 @@ sub Special_forms {
 	    'write' => {
 		args        => ['.', 'strings'],
 		lambda_expr => undef,
+		closure_env => {},
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print to_string($_) } @{ cons_to_array($obj) };
+		    map { print to_string($_) } @{ cons_to_array($obj, 0) };
 		    return undef;
-		    closure_env => {},
 		},
 	    },
 	    'write-err' => {
@@ -577,11 +618,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    while ($obj->car) {
-			print STDERR to_string($obj);
-			$obj = $obj->cdr;
-			last if $obj eq 'nil';
-		    }
+		    map { print STDERR to_string($_) } @{ cons_to_array($obj, 0) };
 		    return undef;
 		},
 	    },

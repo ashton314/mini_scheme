@@ -44,6 +44,24 @@ our %READ_TABLE = (
 		       }
 		       return undef;
 		   },
+		   '`' => sub {
+		       my ($stream, $char, $term_char) = @_;
+		       my $thing = scheme_read($stream, $term_char);
+		       return ['backquote', $thing];
+		   },
+		   ',' => sub {
+		       my ($stream, $char, $term_char) = @_;
+		       my $nchar = $stream->('peek');
+		       if ($nchar eq '@') {
+			   $stream->('read', 1);
+			   my $thing = scheme_read($stream, $term_char);
+			   return ['comma-splice', $thing];
+		       }
+		       else {
+			   my $thing = scheme_read($stream, $term_char);
+			   return ['comma', $thing];
+		       }
+		   },
 		  );
 
 our $EOF = 0;

@@ -70,6 +70,8 @@ sub array_to_cons {
 
 sub cons_to_array {
     my $self = shift;
+    my $depth = shift;
+
     print "Argument is not a Cons. -- cons_to_array\n" && return undef
       unless ref $self eq 'Cons';
 
@@ -78,7 +80,7 @@ sub cons_to_array {
   LOOP: {
 	my $car = $this->{car};
 	if (ref $car eq 'Cons') {
-	    push @list, $car->cons_to_array();
+	    push @list, $depth ? $car->cons_to_array($depth - 1) : $car;
 	}
 	else {
 	    push @list, $car;
