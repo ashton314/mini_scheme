@@ -50,4 +50,3 @@
 (defmacro (let forms . body)
   (cons (list 'lambda (map car forms) (cons 'begin body))
 	(map cadr forms)))
-
