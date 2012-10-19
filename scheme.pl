@@ -380,7 +380,6 @@ sub Special_forms {
 			return undef;
 		    }
 		},
-		
 	    },
 	    cons => {
 		closure_env => {},
@@ -546,6 +545,20 @@ sub Special_forms {
 		    return $rem;
 		},
 	    },
+	    'read' => {
+		args => ['stream'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $stream = find_var('stream', $env);
+		    my $thing;
+		  LOOP: {
+			$thing = scheme_read($stream, "\n");
+			redo LOOP unless defined($thing);
+		    }
+		    return ref $thing eq 'ARRAY' ? array_to_cons($thing) : $thing;
+		},
+		      },
 	    'write' => {
 		args        => ['.', 'strings'],
 		lambda_expr => undef,
