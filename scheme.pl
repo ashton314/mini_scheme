@@ -203,7 +203,7 @@ sub scheme_analyze {
 			$func_ref = $func_proc->($env);
 		    };
 		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
-		    	print STDERR "ERROR: bad function: $expression[0]\n";
+		    	print STDERR "ERROR: bad function: @{ [Dumper($expression[0])]}\n";
 		    	return undef;
 		    }
 		    my %func = %{ $func_ref };
@@ -291,6 +291,7 @@ sub merge_envs {
 sub find_var {
     my ($var, $env) = @_;
     my $this_env = $$env{env};
+    print STDERR "Var: @{ [caller] }\n" unless defined($var);
     if (exists $$this_env{$var}) {
 	return $$this_env{$var};
     }

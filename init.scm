@@ -110,6 +110,11 @@
 (define (cdar lst)
   (cdr (car lst)))
 
+(define (append . lsts)
+  (let ((acc nil))
+    (map (lambda (n) (map (lambda (m) (set! acc (cons m acc))) n)) lsts)
+    (reverse acc)))
+
 ;;; Backquote macros
 
 (define *bq-simplify* #f)
@@ -135,7 +140,7 @@
 	 (write-err ",@ after `")
 	 (terpri))
 	(#t (do ((p x (cdr p))
-		 (q '() (cons (bracket (car p)) q)))
+		 (q nil (cons (bracket (car p)) q)))
 		((atom p)
 		 (cons 'bq-append
 		       (cons (reverse q) (list (list 'bq-quote p)))))
@@ -162,11 +167,11 @@
 	((eq? x 'bq-list) 'list)
 	((eq? x 'bq-quote) 'quote)
 	((atom x) x)
-	((eq? (car x) ('bq-clobberable))
+	((eq? (car x) 'bq-clobberable)
 	 (bq-remove-tokens (cadr x)))
 	((and (eq? (car x) 'bq-list)
 	      (list? (cddr x))
-	      (null (cdddr x)))
+	      (null (cdr (cddr x))))
 	 (cons 'cons (maptree bq-remove-tokens (cdr x))))
 	(#t (maptree bq-remove-tokens x))))
 
