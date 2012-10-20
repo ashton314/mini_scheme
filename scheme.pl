@@ -216,7 +216,7 @@ sub scheme_analyze {
 
 		    if ($TRACED_FUNCTIONS{$expression[0]}) {
 			print "CALLING FUNCTION: @{ [$expression[0]] }\n";
-			print "            ARGS: @arg_vals_copy\n";
+			print "            ARGS: @{ [map {to_string($_)} @arg_vals_copy] }\n";
 		    }
 		    return $func{body}->($nenv);
 		};
@@ -339,7 +339,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my @things = @{ cons_to_array(find_var('things', $env), 0) };
-		    print "Things: @things\n";
+#		    print "Things: @things\n";
 		    (print "ERROR: Got @{ [scalar @things] } args and expected at least 2 -- eq?\n" && return undef) if scalar @things < 2;
 		    my $thing = shift @things;
 		    foreach (@things) {
