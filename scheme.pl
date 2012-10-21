@@ -2,10 +2,14 @@
 use strict;
 use warnings;
 
+BEGIN { print STDERR "Loading modules....."; }
+
 use v5.10;
 
 use Reader;
 use Cons;
+
+BEGIN { print STDERR "Done.\n"; }
 
 my %TRACED_FUNCTIONS = ();
 my %MACROS           = ();
@@ -13,8 +17,11 @@ my %GLOBAL_ENV       = Special_forms();
 
 my $init_fh;
 if (open $init_fh, '<', 'init.scm') {
+    print STDERR "Loading init file...";
     my $data = scheme_read_from_file($init_fh);
+    print STDERR "Done.\nParsing init file...";
     map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
+    print STDERR "Done.\n\n";
 }
 
 REPL: {
@@ -31,10 +38,16 @@ REPL: {
 
 sub scheme_eval {
     my ($expr, $env) = @_;
-    return scheme_analyze($expr)->($env);
+    my $analyzed = scheme_analyze($expr);
+#    print STDERR "Done.\nEvaluating...";
+    my $evaluated = $analyzed->($env);
+#    print STDERR "Done.\n";
+    return $evaluated;
 }
 
 sub scheme_analyze {
+#    print STDERR "Analyzing....";
+
     my $expr = shift;
 
     if (ref $expr eq 'ARRAY') {
@@ -375,7 +388,7 @@ sub Special_forms {
 		args        => [],
 		lambda_expr => undef,
 		body        => sub {
-		    print "Happy Happy Joy Joy\n";
+		    print "Happy Happy Joy Joy.\n";
 		    exit;
 		},
 	    },

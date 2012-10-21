@@ -148,6 +148,8 @@
 		       (push (list 'list (cadr i)) acc))
 		      ((eq? (car i) 'comma-splice)
 		       (push (cadr i) acc))
+		      ((eq? (car i) 'backquote)
+		       (push (list 'backquote (cadr i)) acc))
 		      (#t (push (list 'list (bq-process i)) acc))))
 	      (reverse acc)))))
 
