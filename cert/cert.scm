@@ -76,6 +76,3 @@
 	(write (list 'is thing1 thing2))
 	(terpri)
 	#f)))
-
-(define (terpri)
-  (write-string "\n"))

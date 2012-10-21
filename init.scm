@@ -80,7 +80,7 @@
     (if (null lst)
 	#t
 	(list 'if (car lst) (expander (cdr lst)))))
-  (expander rest))
+  (expander rest))	
 
 (defmacro (dolist form . body)
   (list 'begin
@@ -92,6 +92,9 @@
   (list 'set! where (list 'cons what where)))
 
 ;;; Non-bootstrapping functions
+
+(define (write-string string)
+  (write string))
 
 (define (remove-if func lst)
   (let ((acc nil))
@@ -154,6 +157,13 @@
   `(do ()
        ((not ,test))
      ,@body))
+
+(defmacro (or . rest)
+  (define (expander lst)
+    (if (null lst)
+	#f
+	`(if ,(car lst) ,(car lst) ,(expander (cdr lst)))))
+  (expander rest))
 
 ;; (define *bq-simplify* #f)
 

@@ -3,8 +3,6 @@ use strict;
 use warnings;
 
 use v5.10;
-use Data::Dumper;
-use Scalar::Util;
 
 use Reader;
 use Cons;
@@ -203,8 +201,7 @@ sub scheme_analyze {
 			$func_ref = $func_proc->($env);
 		    };
 		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
-		    	print STDERR "ERROR: bad function: @{ [Dumper($expression[0])]}\n";
-		    	return undef;
+		    	error("Bad function: @{ [$expression[0]]}\n");
 		    }
 		    my %func = %{ $func_ref };
 		    my @arg_syms = @{ $func{args} };
@@ -224,7 +221,7 @@ sub scheme_analyze {
 	}
     }
     else {
-	if (Scalar::Util::looks_like_number($expr)) {
+	if (looks_like_number($expr)) {
 	    return sub {
 		return $expr;
 	    };
@@ -318,11 +315,33 @@ sub set_var {			# setf
 	    return set_var($var, $$env{parent_env}, $val);
 	}
 	else {
-	    print STDERR "ERROR: VAR $var NOT DEFINED\n";
+	    error("VAR $var NOT DEFINED\n");
 	    return undef;
 	}
     }
 }
+
+sub error {
+    my $mesg = shift;
+    print STDERR $mesg;
+    return undef;
+}
+
+sub looks_like_number {		# Snarfed from Scalar::Util::PP
+  my $num = shift;
+
+  return 0 unless defined($num);
+
+  return 1 if ($num =~ /^[+-]?[0-9]+$/); # is a +/- integer
+  return 1
+    if ($num =~
+	/^([+-]?)(?=[0-9]|\.[0-9])[0-9]*(\.[0-9]*)?([Ee]([+-]?[0-9]+))?$/);
+  # a C float
+  return 1 if ($] >= 5.008 and $num =~ /^(Inf(inity)?|NaN)$/i) or
+    ($] >= 5.006001 and $num =~ /^Inf$/i);
+  0;
+}
+
 
 sub Special_forms {
     return (
@@ -340,7 +359,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my @things = @{ cons_to_array(find_var('things', $env), 0) };
 #		    print "Things: @things\n";
-		    (print "ERROR: Got @{ [scalar @things] } args and expected at least 2 -- eq?\n" && return undef) if scalar @things < 2;
+		    error("Got @{ [scalar @things] } args and expected at least 2 -- eq?\n") if scalar @things < 2;
 		    my $thing = shift @things;
 		    foreach (@things) {
 			if (ref $thing ne ref $_ or
@@ -377,8 +396,8 @@ sub Special_forms {
 			return 'nil';
 		    }
 		    else {
-			print STDERR "IN FUNCTION CAR: $cons IS NOT A LIST.\n";
-			print STDERR "CAR: CALLER: @{ [caller] }\n";
+			error("IN FUNCTION CAR: $cons IS NOT A LIST.\n");
+			error("CAR: CALLER: @{ [caller] }\n");
 			return undef;
 		    }
 		},
@@ -399,7 +418,8 @@ sub Special_forms {
 			return $cons->cdr;
 		    }
 		    else {
-		print STDERR "IN FUNCTION CDR: ARGUMENT IS NOT A LIST.\n";
+			error("IN FUNCTION CDR: ARGUMENT IS NOT A LIST.\n");
+			error("CDR: CALLER: @{ [caller] }\n");
 			return undef;
 		    }
 		},
@@ -490,7 +510,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env)) };
-		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- >\n" && return undef) if scalar @args < 2;
+		    error("Got @{ [scalar @args] } args and expected at least 2 -- >\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
 			return '#f' if $_ > $thing;
@@ -505,7 +525,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env)) };
-		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- <\n" && return undef) if scalar @args < 2;
+		    error("Got @{ [scalar @args] } args and expected at least 2 -- <\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
 			return '#f' if $_ < $thing;
@@ -520,7 +540,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env)) };
-		    (print "ERROR: Got @{ [scalar @args] } args and expected at least 2 -- =\n" && return undef) if scalar @args < 2;
+		    error("Got @{ [scalar @args] } args and expected at least 2 -- =\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
 			return '#f' if $_ != $thing;
@@ -609,6 +629,35 @@ sub Special_forms {
 		    return ref $thing eq 'ARRAY' ? array_to_cons($thing) : $thing;
 		},
 		      },
+	    load => {
+		     args => ['file'],
+		     lambda_expr => undef,
+		     closure_env => {},
+		     body => sub {
+			 my $env = shift;
+			 my $file = find_var('file', $env);
+			 if (-e $file) {
+			     if (-r $file) {
+				 my $fh;
+				 if (open $fh, '<', $file) {
+				     my $data = scheme_read_from_file($fh);
+				     map { scheme_eval($_, \%GLOBAL_ENV) }
+				       @{ $data };
+				     return '#t';
+				 }
+				 else {
+				     error("Could not open file: $!\n");
+				 }
+			     }
+			     else {
+				 error("File $file not readable\n");
+			     }
+			 }
+			 else {
+			     error("File $file does not exist.\n");
+			 }
+		     },
+		    },
 	    'write' => {
 		args        => ['.', 'strings'],
 		lambda_expr => undef,
@@ -647,6 +696,15 @@ sub Special_forms {
 		args        => [],
 		lambda_expr => undef,
 		body => sub {
+		    print "\n";
+		    return undef;
+		},
+	    },
+	    'terpri-err' => {
+		closure_env => {},
+		args        => [],
+		lambda_expr => undef,
+		body => sub {
 		    print STDERR "\n";
 		    return undef;
 		},
@@ -662,34 +720,34 @@ sub Special_forms {
 			return undef;
 		    },
 		   },
-	    dumper => {
-		closure_env => {},
-		args        => ['thing'],
-		lambda_expr => undef,
-		body => sub {
-		    my $env = shift;
-		    my $obj = find_var('thing', $env);
-		    print STDERR Dumper($obj) . "\n";
-		    return undef;
-		},
-		      },
-	    closure_env => {
-		closure_env => {},
-		args        => ['symbol'],
-		lambda_expr => undef,
-		body => sub {
-		    my $env = shift;
-		    my $obj = find_var('symbol', $env);
-		    if (ref $obj eq 'HASH') {
-			print Dumper($$obj{closure_env}) . "\n";
-			return undef;
-		    }
-		    else {
-			print "Not a function.\n";
-			return undef;
-		    }
-		},
-	    },
+	    # dumper => {
+	    # 	closure_env => {},
+	    # 	args        => ['thing'],
+	    # 	lambda_expr => undef,
+	    # 	body => sub {
+	    # 	    my $env = shift;
+	    # 	    my $obj = find_var('thing', $env);
+	    # 	    print STDERR Dumper($obj) . "\n";
+	    # 	    return undef;
+	    # 	},
+	    # },
+	    # closure_env => {
+	    # 	closure_env => {},
+	    # 	args        => ['symbol'],
+	    # 	lambda_expr => undef,
+	    # 	body => sub {
+	    # 	    my $env = shift;
+	    # 	    my $obj = find_var('symbol', $env);
+	    # 	    if (ref $obj eq 'HASH') {
+	    # 		print Dumper($$obj{closure_env}) . "\n";
+	    # 		return undef;
+	    # 	    }
+	    # 	    else {
+	    # 		print "Not a function.\n";
+	    # 		return undef;
+	    # 	    }
+	    # 	},
+	    # },
 	    env_symbols => {
 		closure_env => {},
 		args        => [],
@@ -700,16 +758,16 @@ sub Special_forms {
 		    return \@syms;
 		},
 	    },
-	    env_dump => {
-		closure_env => {},
-		args        => [],
-		lambda_expr => [],
-		body => sub {
-		    my $env = shift;
-		    print Dumper( $env );
-		    return undef;
-		},
-	    },
+	    # env_dump => {
+	    # 	closure_env => {},
+	    # 	args        => [],
+	    # 	lambda_expr => [],
+	    # 	body => sub {
+	    # 	    my $env = shift;
+	    # 	    print Dumper( $env );
+	    # 	    return undef;
+	    # 	},
+	    # },
 	    trace => {
 		closure_env => {},
 		args        => ['symbol'],
