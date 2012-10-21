@@ -412,6 +412,8 @@ sub Special_forms {
 		    my $env = shift;
 		    my ($arg1, $arg2) = 
 			map { find_var($_, $env) } qw(arg1 arg2);
+		    $arg1 = array_to_cons($arg1) if ref $arg1 eq 'ARRAY';
+		    $arg2 = array_to_cons($arg2) if ref $arg2 eq 'ARRAY';
 		    return cons($arg1, $arg2);
 		},
 	    },

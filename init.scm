@@ -121,7 +121,10 @@
 
 (define (append . lsts)
   (let ((acc nil))
-    (map (lambda (n) (map (lambda (m) (set! acc (cons m acc))) n)) lsts)
+    (map (lambda (n)
+	   (map (lambda (m) (push m acc))
+		n))
+	 lsts)
     (reverse acc)))
 
 ;;; Backquote macros
