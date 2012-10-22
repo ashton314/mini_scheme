@@ -164,7 +164,7 @@
   (define (expander lst)
     (if (null lst)
 	#f
-	`(if ,(car lst) ,(car lst) ,(expander (cdr lst)))))
+	`(let ((_ ,(car lst))) (if _ _ ,(expander (cdr lst))))))
   (expander rest))
 
 ;; (define *bq-simplify* #f)
