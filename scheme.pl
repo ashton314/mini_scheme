@@ -673,9 +673,12 @@ sub Special_forms {
 			     if (-r $file) {
 				 my $fh;
 				 if (open $fh, '<', $file) {
+				     print STDERR "Reading $file...";
 				     my $data = scheme_read_from_file($fh);
+				     print STDERR "Done.\nEvaluating $file...";
 				     map { scheme_eval($_, \%GLOBAL_ENV) }
 				       @{ $data };
+				     print STDERR "Done.\n";
 				     return '#t';
 				 }
 				 else {
