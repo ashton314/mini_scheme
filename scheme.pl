@@ -6,6 +6,7 @@ BEGIN { print STDERR "Loading modules....."; }
 
 use v5.10;
 
+use Symbol;
 use Reader;
 use Cons;
 
@@ -261,6 +262,14 @@ sub to_string {
 	    map { $ret .= ' ' . to_string($_) } @{ $obj };
 	    $ret .= ')';
 	}
+	when ('HASH') {
+	    if (exists $$obj{name}) {
+		$ret = $$obj{name};
+	    }
+	    else {
+		$ret = "#<$obj>";
+	    }
+	}
 	default {
 	    $ret = "$obj";
 	}
@@ -355,6 +364,17 @@ sub looks_like_number {		# Snarfed from Scalar::Util::PP
   0;
 }
 
+{
+    my $counter = 0;
+    sub new_symbol {
+	$counter++;
+	my $name = shift || "GENSYM$counter";
+	return {
+		name => $name,
+		'interned?' => 0,
+	       };
+    }
+}
 
 sub Special_forms {
     return (
@@ -761,6 +781,16 @@ sub Special_forms {
 	    # 	    }
 	    # 	},
 	    # },
+	    gensym => {
+		       closure_env => {},
+		       args        => [],
+		       lambda_expr => undef,
+		       body => sub {
+			   my $env = shift;
+			   my $sym = new_symbol();
+			   return $sym;
+		       },
+		      },
 	    env_symbols => {
 		closure_env => {},
 		args        => [],

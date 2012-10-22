@@ -2,8 +2,6 @@ package Cons;
 use strict;
 use warnings;
 
-use Data::Dumper;
-
 sub import {
     my $caller = caller;
     no strict 'refs';
