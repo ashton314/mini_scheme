@@ -3,11 +3,11 @@
 (define (atom x)
   (not (list? x)))
 
-(define (even? n)
-  (= (mod n 2) 0))
-
 (define (odd? n)
   (= (mod n 2) 1))
+
+(define (even? n)
+  (not (odd? n)))
 
 (define (factorial n)
   (if (= n 1)
@@ -137,36 +137,77 @@
 
 (define foo '(1 2 3))
 
-(define (bq-process x)
-  (cond ((atom x) (list 'quote x))
-	((eq? (car x) 'backquote) (bq-process (cadr x)))
-	((eq? (car x) 'comma) (cadr x))
-	(#t (let ((acc '(append)))
-	      (dolist (i x)
-		(cond ((atom i) (push (list 'list (list 'quote i)) acc))
-		      ((eq? (car i) 'comma)
-		       (push (list 'list (cadr i)) acc))
-		      ((eq? (car i) 'comma-splice)
-		       (push (cadr i) acc))
-		      ((eq? (car i) 'backquote)
-		       (push (list 'backquote (cadr i)) acc))
-		      (#t (push (list 'list (bq-process i)) acc))))
-	      (reverse acc)))))
+;; `(foo `(foo ,foo ,,foo) ,@foo)
+
+;; (backquote
+;;  (foo
+;;   (backquote (foo (comma foo) (comma (comma foo))))
+;;   (comma-splice foo)))
+
+;; (FOO `(FOO ,FOO ,(1 2 3)) 1 2 3)
+
+;; (append
+;;   (list (quote foo))
+;;   (list (backquote
+;; 	 (list foo (comma (comma foo))))) ; Ignoring `(... `(... ,foo ...))
+;;   foo)
+
+;; `(foo ,foo ,@foo)
+
+;; (append
+;;   (list (quote foo))
+;;   (list foo)
+;;   foo)
+
+(defmacro (backquote x)
+  (bq-process x 1))
+
+(define (bq-process x depth)
+  (cons 'append
+  	(let ((thing (map (lambda (n) (bq-loop n depth)) x)))
+;	  (write-err thing)
+;	  (terpri)
+	  thing)))
+
+(define (bq-loop x depth)
+  (define (count-comma lst acc)
+    (if (and (list? lst)
+	     (not (null lst))
+	     (eq? (car lst) 'comma))
+	(count-comma (cadr lst) (+ acc 1))
+	acc))
+  (define (nthcadr thing times)
+    (if (= times 1)
+	(cadr thing)
+	(nthcadr (cadr thing) (- times 1))))
+  (cond ((atom x)
+	 (list 'list (list 'quote x)))
+	((eq? (car x) 'comma)
+	 (if (= (- (count-comma x 1) 1) depth)
+	     (list 'list (nthcadr x depth))
+	     (list 'list (list 'quote x))))
+	((eq? (car x) 'comma-splice)
+	 (cadr x))
+	((eq? (car x) 'backquote)
+	 (list 'list
+	       (list 'append (apply (lambda (n) (bq-process n (+ depth 1)))
+				       (cdr x)))))
+	(#t (list 'quote (map bq-process x)))))
 
 ;;; Bootstrap++
 
-(defmacro (while2 test . body)
-  `(do ()
-       ((not ,test))
-     ,@body))
+;; (defmacro (while2 test . body)
+;;   `(do ()
+;;        ((not ,test))
+;;      ,@body))
 
-(defmacro (or . rest)
-  (define (expander lst)
-    (if (null lst)
-	#f
-	(let ((sym (gensym)))
-	  `(let ((,sym ,(car lst))) (if ,sym ,sym ,(expander (cdr lst)))))))
-  (expander rest))
+;; (defmacro (or . rest)
+;;   (define (expander lst)
+;;     (if (null lst)
+;; 	#f
+;; 	(let ((sym (gensym)))
+;; 	  `(let ((,sym ,(car lst))) (if ,sym ,sym ,(expander (cdr lst)))))))
+;;   (expander rest))
 
 ;; (define *bq-simplify* #f)
 

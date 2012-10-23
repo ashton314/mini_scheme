@@ -712,7 +712,8 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print STDERR to_string($_) } @{ cons_to_array($obj, 0) };
+		    map { print STDERR to_string($_) }
+		      @{ cons_to_array($obj, 0) };
 		    return undef;
 		},
 	    },
