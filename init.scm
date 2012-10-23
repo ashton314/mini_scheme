@@ -165,8 +165,6 @@
 (define (bq-process x depth)
   (cons 'append
   	(let ((thing (map (lambda (n) (bq-loop n depth)) x)))
-;	  (write-err thing)
-;	  (terpri)
 	  thing)))
 
 (define (bq-loop x depth)
@@ -192,22 +190,19 @@
 	 (list 'list
 	       (list 'append (apply (lambda (n) (bq-process n (+ depth 1)))
 				       (cdr x)))))
-	(#t (list 'quote (map bq-process x)))))
+	(#t (let ((thing (map (lambda (n)
+				(bq-loop n depth)) x)))
+	      (list 'list (cons 'append thing))))))
 
 ;;; Bootstrap++
 
-;; (defmacro (while2 test . body)
-;;   `(do ()
-;;        ((not ,test))
-;;      ,@body))
-
-;; (defmacro (or . rest)
-;;   (define (expander lst)
-;;     (if (null lst)
-;; 	#f
-;; 	(let ((sym (gensym)))
-;; 	  `(let ((,sym ,(car lst))) (if ,sym ,sym ,(expander (cdr lst)))))))
-;;   (expander rest))
+(defmacro (or . rest)
+  (define (expander lst)
+    (if (null lst)
+	#f
+	(let ((sym (gensym)))
+	  `(let ((,sym ,(car lst))) (if ,sym ,sym ,(expander (cdr lst)))))))
+  (expander rest))
 
 ;; (define *bq-simplify* #f)
 
