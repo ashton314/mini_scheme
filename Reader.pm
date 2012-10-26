@@ -39,7 +39,7 @@ our %READ_TABLE = (
 		   },
 		   ';' => sub {
 		       my $stream = shift;
-		       while ($stream->('peek') ne "\n") {
+		       until ($stream->('peek') eq "\n" or $stream->('eof')) {
 			   $stream->('read', 1);
 		       }
 		       return undef;
