@@ -93,8 +93,9 @@
 
 ;;; Non-bootstrapping functions
 
-(define (write-string string)
-  (write string))
+(define (write-ln . strings)
+  (apply write-string strings)
+  (terpri))
 
 (define (remove-if func lst)
   (let ((acc nil))
@@ -118,6 +119,12 @@
 
 (define (caddr lst)
   (car (cddr lst)))
+
+(define (cdddr lst)
+  (cdr (cddr lst)))
+
+(define (cadddr lst)
+  (car (cdddr lst)))
 
 (define (cdar lst)
   (cdr (car lst)))
@@ -203,6 +210,11 @@
 	(let ((sym (gensym)))
 	  `(let ((,sym ,(car lst))) (if ,sym ,sym ,(expander (cdr lst)))))))
   (expander rest))
+
+(defmacro (dotimes args . body)
+  `(do ((,(car args) 0 (+ ,(car args) 1)))
+       ((= ,(cadr args) ,(car args)) nil)
+     ,@body))
 
 ;; (define *bq-simplify* #f)
 

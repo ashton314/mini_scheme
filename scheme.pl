@@ -5,10 +5,12 @@ use warnings;
 BEGIN { print STDERR "Loading modules....."; }
 
 use v5.10;
+use Time::HiRes qw(gettimeofday);
 
 use Symbol;
 use Reader;
 use Cons;
+use String;
 
 BEGIN { print STDERR "Done.\n"; }
 
@@ -59,7 +61,7 @@ sub scheme_analyze {
 
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
-	    when ('string') { return sub { $$expr[1]; }; }
+	    when ('string') { return sub { new String($$expr[1]); }; }
 	    when ('quote') { 
 		given (ref $$expr[1]) {
 		    when ('ARRAY') {
@@ -261,6 +263,9 @@ sub to_string {
     given (ref $obj) {
 	when ('Cons') {
 	    $ret = $obj->to_string(\&to_string);
+	}
+	when ('String') {
+	    $ret = "\"$obj->{string}\"";
 	}
 	when ('ARRAY') {
 	    $ret .= '#(';
@@ -667,13 +672,22 @@ sub Special_forms {
 		    return ref $thing eq 'ARRAY' ? array_to_cons($thing) : $thing;
 		},
 		      },
+            'time' => {
+		       args => [],
+		       lambda_expr => undef,
+		       closure_env => {},
+		       body => sub {
+			   my ($secs, $mili) = gettimeofday();
+			   return "$secs.$mili";
+		       },
+		      },
 	    load => {
 		     args => ['file'],
 		     lambda_expr => undef,
 		     closure_env => {},
 		     body => sub {
 			 my $env = shift;
-			 my $file = find_var('file', $env);
+			 my $file = (find_var('file', $env))->{string};
 			 if (-e $file) {
 			     if (-r $file) {
 				 my $fh;
@@ -707,6 +721,19 @@ sub Special_forms {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
 		    map { print to_string($_) } @{ cons_to_array($obj, 0) };
+		    return undef;
+		},
+	    },
+	    'write-string' => {
+		args        => ['.', 'strings'],
+		lambda_expr => undef,
+		closure_env => {},
+		body => sub {
+		    my $env = shift;
+		    my $obj = find_var('strings', $env);
+		    map { print $_ }
+		      map { ref $_ eq 'String' ? $_->{string} : to_string($_) }
+			@{ cons_to_array($obj, 0) };
 		    return undef;
 		},
 	    },
