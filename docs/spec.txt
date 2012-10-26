@@ -6,12 +6,18 @@
 The expression:
   (set! add5 (lambda (n) (+ 5 n)))
 
-Is equivalent to this expression:
+Is /almost/ equivalent to this expression:
   (define (add5 n) (+ 5 n))
 
-I'm not sure if there is a difference. 
-Actually, I defined DEFINE by calling the Eval() subroutine I made for
-my micro lisp project. I transformed the expression into a SET! expression
+Define must insert the symbol (in the example above, the symbol
+`ADD5') into the current lexical enviroment (or the global one if no
+lexical enviroment exists.) SET! needs to know where the variable is
+in order to set it. SET! always modifies the variable in the closest
+enviroment it can find. (Enviroments are kind of structured like
+directories. Also, you can only cd to .., never down and enviroment.)
+
+I'll tell you more about enviroments if you need it.
+
 
 * SET!
 (set! foo 17)			; Sets a variable. Woot.
