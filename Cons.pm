@@ -45,7 +45,7 @@ sub array_to_cons {
     else {
 	my @things = @{ $self };
 	my $end = pop @things;
-	return 'nil' unless $end;
+	return 'nil' unless defined($end);
 	my $cons = cons((ref $end eq 'ARRAY' ? array_to_cons($end) : $end),
 			'nil');
 	while (@things) {

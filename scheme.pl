@@ -32,7 +32,13 @@ REPL: {
 	$expr = scheme_read(0, "\n");
 	redo INPUT unless defined($expr);
     }
-    my $to_print = scheme_eval($expr, \%GLOBAL_ENV);
+    my $to_print;
+    eval {
+	$to_print = scheme_eval($expr, \%GLOBAL_ENV);
+    };
+    if ($@) {
+	print STDERR "$@";
+    }
    print "\n" . (defined($to_print) ? to_string($to_print) : "; UNDEF") . "\n";
     redo REPL;
 }
@@ -345,8 +351,7 @@ sub set_var {			# setf
 
 sub error {
     my $mesg = shift;
-    print STDERR $mesg;
-    return undef;
+    die $mesg;
 }
 
 sub looks_like_number {		# Snarfed from Scalar::Util::PP
@@ -705,6 +710,16 @@ sub Special_forms {
 		    return undef;
 		},
 	    },
+	    'error' => {
+		      args => ['error-string'],
+		      lambda_expr => undef,
+		      closure_env => {},
+		      body => sub {
+			  my $env = shift;
+			  my $str = find_var('error-string', $env) // "ERROR";
+			  die $str;
+		      },
+		     },
 	    'write-err' => {
 		closure_env => {},
 		args        => ['.', 'strings'],
