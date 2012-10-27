@@ -18,6 +18,9 @@ my %TRACED_FUNCTIONS = ();
 my %MACROS           = ();
 my %GLOBAL_ENV       = Special_forms();
 
+my $CALLS_TO_ANALYZE = 0;
+my $ANALYZE_VERBOSE  = 0;
+
 my $init_fh;
 if (open $init_fh, '<', 'init.scm') {
     print STDERR "Loading init file...";
@@ -41,7 +44,13 @@ REPL: {
     if ($@) {
 	print STDERR "$@";
     }
-   print "\n" . (defined($to_print) ? to_string($to_print) : "; UNDEF") . "\n";
+    print "\n";
+    if ($ANALYZE_VERBOSE) {
+	print "Calls to analyze: $CALLS_TO_ANALYZE\n";
+	$CALLS_TO_ANALYZE = 0;
+    }
+    print defined($to_print) ? to_string($to_print) : "; UNDEF";
+    print "\n";
     redo REPL;
 }
 
@@ -55,9 +64,8 @@ sub scheme_eval {
 }
 
 sub scheme_analyze {
-#    print STDERR "Analyzing....";
-
     my $expr = shift;
+    $CALLS_TO_ANALYZE++ if $ANALYZE_VERBOSE;
 
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
@@ -857,6 +865,14 @@ sub Special_forms {
 	    # 	    return undef;
 	    # 	},
 	    # },
+	    verbose => {
+		closure_env => {},
+		args        => ['symbol'],
+		lambda_expr => undef,
+		body => sub {
+		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
+		},
+		       },
 	    trace => {
 		closure_env => {},
 		args        => ['symbol'],
