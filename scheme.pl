@@ -14,6 +14,8 @@ use String;
 
 BEGIN { print STDERR "Done.\n"; }
 
+$| = 1;
+
 my %TRACED_FUNCTIONS = ();
 my %MACROS           = ();
 my %GLOBAL_ENV       = Special_forms();
@@ -666,6 +668,16 @@ sub Special_forms {
 		    return $rem;
 		},
 	    },
+	    'int' => {
+		      closure_env => {},
+		      args => ['n'],
+		      lambda_expr => undef,
+		      body => sub {
+			  my $env = shift;
+			  my $n = find_var('n', $env);
+			  return int $n;
+		      },
+		     },
 	    'read' => {
 		args => ['stream'],
 		lambda_expr => undef,
