@@ -1,0 +1,22 @@
+-*- mode: outline -*-
+
+* Time Line
+
+** Fri Sep 21 13:59:54 2012
+   Initial commit. Project started.
+
+** Fri Oct 26 14:38:28 2012
+   Complete basic functionality. Closure tests pass. From this time
+   forward, all work done is enhancements and optimizations.
+
+
+* Observations
+
+** Macro expansion
+   - Macro expansion is a PIG. Fortunatly, macro expansion only
+     happens once when the code is analyzed.
+   - The backquote macro takes a lot of time to execute.
+
+** Speed
+   - The code seems to execute fairly rapidly. The only exception is
+     during macro expansion.
