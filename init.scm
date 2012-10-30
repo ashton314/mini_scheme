@@ -3,6 +3,9 @@
 (define (atom x)
   (not (list? x)))
 
+(define (cons? x)
+  (list? x))
+
 (define (odd? n)
   (= (mod n 2) 1))
 
@@ -101,6 +104,9 @@
   (let ((acc nil))
     (map (lambda (n) (if (not (func n)) (set! acc (cons n acc)))) lst)
     (reverse acc)))
+
+(define (remove-if-not func lst)
+  (remove-if (lambda (n) (not (func n))) lst))
 
 (defmacro (do forms condition . body)	; I needed that remove-if function
   (list 'let (map (lambda (form) (list (car form) (cadr form))) forms)
