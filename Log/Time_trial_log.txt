@@ -1,0 +1,99 @@
+Mon Oct 29 17:35:51 MDT 2012
+
+## Let this be the standard speed test
+
+* (begin (time-trial 1000 (closure-tests)) (time-trial 1000
+  (loop-tests)))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0791308879852295
+TOTAL TIME ELAPSED:            111.387278795242
+NET TIME:                      111.308147907257
+AVERAGE ITERATION TIME:        0.111308147907257
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.597779989242554
+TOTAL TIME ELAPSED:            207.862083911896
+NET TIME:                      207.264303922653
+AVERAGE ITERATION TIME:        0.207264303922653
+
+; UNDEF
+*
+
+Total Elapsed Time = 204.7966 Seconds
+  User+System Time = 40.56506 Seconds
+Exclusive Times
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 0.14   0.057  0.071      5   0.0115 0.0141  Reader::BEGIN
+ 0.18   0.071  0.149     12   0.0059 0.0124  main::BEGIN
+ 0.04   0.018  1.683      5   0.0035 0.3367  Reader::scheme_read_from_file
+ 0.01   0.003  0.003      1   0.0034 0.0034  warnings::register_categories
+ 0.01   0.003  0.003      1   0.0028 0.0028  bytes::import
+ 0.01   0.003  0.003      2   0.0015 0.0015  DynaLoader::dl_install_xsub
+ 0.01   0.004  0.004      3   0.0012 0.0012  Exporter::import
+ 0.00   0.001  0.001      1   0.0011 0.0011  main::Special_forms
+ 0.00   0.001  0.004      1   0.0007 0.0045  DynaLoader::bootstrap
+ 0.00   0.001  0.001      1   0.0006 0.0013  XSLoader::load
+ 0.00   0.002  0.008      4   0.0005 0.0020  Data::Dumper::BEGIN
+ 0.00   0.001  0.001      2   0.0005 0.0005  DynaLoader::dl_load_file
+ 0.00   0.000  0.000      1   0.0004 0.0004  vars::import
+ 0.00   0.000  0.000      1   0.0003 0.0003  Time::HiRes::bootstrap
+ 0.01   0.006  0.006     18   0.0003 0.0003  main::new_symbol
+ 0.00   0.000  0.000      1   0.0003 0.0003  feature::import
+ 0.00   0.000  0.000      1   0.0003 0.0004  Exporter::export
+ 0.00   0.000  0.000      1   0.0002 0.0002  Data::Dumper::bootstrap
+ 0.00   0.000  0.000      1   0.0002 0.0002  Exporter::Heavy::_rebuild_cache
+ 0.96   0.390  1.673   2829   0.0001 0.0006  Reader::scheme_read
+ 0.00   0.000  0.000      1   0.0001 0.0001  Cons::import
+ 0.15   0.060  1.302    512   0.0001 0.0025  Reader::scheme_read_delimited_list
+ 0.00   0.000  0.000      2   0.0001 0.0001  warnings::unimport
+ 0.54   0.221 20.707   1945   0.0001 0.0106  main::scheme_analyze
+ 0.00   0.000  0.000      1   0.0001 0.0001  Reader::import
+ 0.01   0.005 129.45     51   0.0001 2.5383  main::scheme_eval
+ 0.00   0.001  0.001     10   0.0001 0.0001  Reader::make_scheme_stream
+ 0.00   0.000  0.000      1   0.0001 0.0001  Symbol::BEGIN
+ 22.5   9.128 16.688 109274   0.0001 0.0002  Cons::array_to_cons
+ 0.00   0.000  0.000      1   0.0001 0.0001  Config::import
+ 36.2   14.70 31.161 206392   0.0001 0.0002  main::bind_vars
+ 21.7   8.805  8.805 133201   0.0001 0.0001  Cons::cons_to_array
+ 0.00   0.000  0.000      1   0.0001 0.0001  overload::OVERLOAD
+ 139.   56.42 129.12 108770   0.0001 0.0001  main::__ANON__
+ 0.00   0.000  0.000      2   0.0001 0.0001  Exporter::as_heavy
+ 0.11   0.043  0.043    852   0.0001 0.0001  main::looks_like_number
+ 0.00   0.000  0.000      3   0.0000 0.0000  warnings::import
+ 0.00   0.000  0.003      1   0.0000 0.0035  warnings::register::import
+ 19.0   7.742  7.742 221968   0.0000 0.0000  Cons::cons
+ 0.67   0.270  0.270   8226   0.0000 0.0000  String::new
+ 0.00   0.000  0.000      4   0.0000 0.0000  strict::import
+ 3.39   1.374  1.374  46683   0.0000 0.0000  main::set_var
+ 0.00   0.000  0.000      9   0.0000 0.0000  main::to_string
+ 61.1   24.81 24.810 948983   0.0000 0.0000  main::find_var
+ 0.00   0.000  0.000      2   0.0000 0.0000  warnings::_mkMask
+ 12.0   4.880  4.880 206392   0.0000 0.0000  main::merge_envs
+ 0.00   0.000  0.000      3   0.0000 0.0000  strict::bits
+ 0.29   0.118  0.118   5432   0.0000 0.0000  Cons::cdr
+ 3.06   1.241  1.677  58861   0.0000 0.0000  Reader::__ANON__
+ 0.26   0.104  1.989   5052   0.0000 0.0004  Cons::null
+ 0.38   0.155  0.155   7740   0.0000 0.0000  Cons::car
+ 0.00   0.000  0.001      1   0.0000 0.0006  Time::HiRes::import
+ 0.00   0.000  0.000      7   0.0000 0.0000  Config::FETCH
+ 0.00   0.000  0.000      6   0.0000 0.0000  Time::HiRes::gettimeofday
+ 0.00   0.000  0.000      2   0.0000 0.0000  DynaLoader::BEGIN
+ 0.00   0.000  0.003      1   0.0000 0.0035  overload::BEGIN
+Total Elapsed Time = 204.7966 Seconds
+  User+System Time = 40.56506 Seconds
+Exclusive Times
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 0.00   0.000  0.000      1   0.0000 0.0000  DynaLoader::dl_load_flags
+ 0.00   0.000  0.000      3   0.0000 0.0000  strict::unimport
+ 0.00   0.000  0.000      1   0.0000 0.0000  Exporter::Heavy::heavy_export_to_l
+                                             evel
+ 0.00   0.000  0.000      1   0.0000 0.0000  Exporter::Heavy::heavy_export
+ 0.00       - -0.000     10        -      -  UNIVERSAL::can
+ 0.00       -  0.000      3        - 0.0000  Cons::BEGIN
+ 0.00       - -0.000      2        -      -  DynaLoader::dl_find_symbol
+ 0.00       -  0.000      3        - 0.0001  Time::HiRes::BEGIN
+ 0.00       - -0.000      2        -      -  DynaLoader::dl_undef_symbols
+ 0.00       -  0.000      1        - 0.0005  Exporter::export_to_level
+ 0.00       -  0.000      1        - 0.0000  overload::import
+ 0.00       -  0.000      1        - 0.0000  String::BEGIN
