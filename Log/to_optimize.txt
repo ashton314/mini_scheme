@@ -1,0 +1,39 @@
+This file is to record what functions need to be optimized.
+
+Please see Time_trial_log.txt to see what I was doing on the dates
+recorded.
+
+Mon Oct 29 17:35:51 MDT 2012
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 22.5   9.128 16.688 109274   0.0001 0.0002  Cons::array_to_cons
+ 36.2   14.70 31.161 206392   0.0001 0.0002  main::bind_vars
+ 21.7   8.805  8.805 133201   0.0001 0.0001  Cons::cons_to_array
+ 19.0   7.742  7.742 221968   0.0000 0.0000  Cons::cons
+ 61.1   24.81 24.810 948983   0.0000 0.0000  main::find_var
+
+Tue Oct 30 16:19:21 MDT 2012
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 2.80   0.257 28.506   2277   0.0001 0.0125  main::scheme_analyze
+ 39.3   3.611  3.611  43957   0.0001 0.0001  Cons::cons_to_array
+ 8.55   0.785  1.503  10414   0.0001 0.0001  Cons::array_to_cons
+ 40.4   3.712  4.892  53563   0.0001 0.0001  main::bind_vars
+ 10.7   0.985  0.985  25594   0.0000 0.0000  Cons::cons
+ 62.5   5.747  5.747 215330   0.0000 0.0000  main::find_var
+ 13.6   1.252  1.252  53563   0.0000 0.0000  main::merge_envs
+
+Intersection: (sorted by personal idea of importance)
+- Cons::cons_to_array
+- Cons::array_to_cons
+- main::bind_vars
+- main::find_var
+- main::merge_envs
+
+`find_var' and `merge_envs' are already pretty fast. Perhaps I can
+optimize away calls to these functions. Particularly `find_var'.
+
+I call `cons_to_array' way too much. I should just work with cons
+structures.
+
+I think I can optimize much of `cons_to_array' and
+`array_to_cons'. Maybe iterate over the array passed to
+`array_to_cons' backwards to elimiate massive recursion.
