@@ -2,7 +2,7 @@ package Reader;
 use strict;
 use warnings;
 
-use Data::Dumper;
+our $VERSION = "2.0.3";
 
 sub import {
     my $caller = caller;
@@ -84,7 +84,7 @@ sub scheme_read {
 	    $stream->('read', 1);
 	    return $READ_TABLE{$char}->($stream, $char, $term_char);
 	}
-	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#\.]/) {
+	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#\.]/ ) {
 	    $stream->('read', 1) unless ($char eq $term_char);
 	    last LOOP if defined($obj);
 	}
@@ -239,6 +239,15 @@ from L<Quantum::Superpositions>.)
 
 Takes a file handle and a character that will terminate a lisp expression. The file handle defaults to STDIN. An argument of 0 will trigger the default. For REPLs, use "\n" as the terminating character.
 
+This returns either an array ref or a scalar value, depending on what was read. Example:
+
+  * foo
+  Dumper: $VAR1 = 'foo';
+  * (foo zoop narf)
+  Dumper: $VAR1 = ['foo', 'zoop', 'narf'];
+  * (foo ((zoop) narf) bar (baz))
+  Dumper: $VAR1 = ['foo', [['zoop'], 'narf'], 'bar', ['baz']];
+
 =item make_scheme_stream
 
 Given a file handle, this returns a stream that L</scheme_read> can
@@ -256,6 +265,12 @@ terminating char. Returns an array ref of all objects read.
 Given a file handle, will continuously call L</scheme_read> on the file handle until the file's contents have been exhausted. If the file does not have a newline as the final character, the function may hang.
 
 =back
+
+=head1 READ MACROS
+
+All the read macros for this reader are stored in the variable C<%Reader::READ_TABLE>. The keys of this hash are one-character strings that identify the macro character. The value of the pairs is a subroutine that takes the current stream object, the macro character, and the terminating character (originally passed to L</scheme_read>.) The stream does B<NOT> have the macro character at the beginning.
+
+Unfortunatly, dispatching macro characters have not been implemented. Fortunatly, they should not be too dificult to implement. This might be possible to do without modifying Reader.pm
 
 =head1 EXAMPLES
 
@@ -287,7 +302,7 @@ Reading data from a file:
 
 =item *
 
-The function L</scheme_read_from_file> may cause the program to hang if the file to be read does not end with a newline character.
+No built-in support for dispatching macro characters.
 
 =back
 
