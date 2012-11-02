@@ -1,3 +1,7 @@
+This is the command I run:
+
+dprofpp -lv -O 100 tmon.out >> Log/Time_trial_log.txt
+
 Mon Oct 29 17:35:51 MDT 2012
 
 ## Let this be the standard speed test
@@ -211,3 +215,178 @@ Exclusive Times
  0.00       -  0.000      3        - 0.0000  Cons::BEGIN
  0.00       -  0.000      3        - 0.0001  Time::HiRes::BEGIN
  0.00       -  0.000      1        - 0.0005  Exporter::export_to_level
+
+
+Thu Nov  1 21:40:43 MDT 2012
+
+Attempted to optimize the calls to cons_to_array() in the addition
+operators. The following is just: (load "cert/cert.scm")
+
+
+Total Elapsed Time = 143.2485 Seconds
+  User+System Time = 8.134791 Seconds
+Exclusive Times
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 0.15   0.012  0.014      1   0.0115 0.0144  String::BEGIN
+ 0.81   0.066  0.094     13   0.0051 0.0073  main::BEGIN
+ 0.04   0.003  0.003      1   0.0026 0.0027  warnings::register_categories
+ 0.02   0.002  0.002      1   0.0021 0.0021  Exporter::Heavy::_rebuild_cache
+ 0.07   0.006  0.006      3   0.0021 0.0021  warnings::unimport
+ 0.01   0.001  0.001      1   0.0014 0.0014  main::Special_forms
+ 0.01   0.001  0.003      1   0.0013 0.0027  DynaLoader::bootstrap
+ 0.06   0.005  1.859      5   0.0010 0.3719  Reader::scheme_read_from_file
+ 0.01   0.001  0.001      1   0.0007 0.0007  DynaLoader::dl_load_file
+ 0.01   0.001  0.001      1   0.0006 0.0006  Time::HiRes::bootstrap
+ 0.00   0.000  0.000      1   0.0005 0.0005  feature::import
+ 0.00   0.000  0.002      1   0.0004 0.0025  Exporter::export
+ 0.00   0.000  0.000      1   0.0003 0.0003  Exporter::import
+ 0.18   0.015 27.868     59   0.0003 0.4723  main::scheme_eval
+ 1.60   0.130  1.442    587   0.0002 0.0025  Reader::scheme_read_delimited_list
+ 0.00   0.000  0.000      1   0.0002 0.0002  Cons::import
+ 0.00   0.000  0.000      1   0.0002 0.0002  overload::OVERLOAD
+ 0.00   0.000  0.000      1   0.0002 0.0002  Reader::import
+ 0.00   0.000  0.000      1   0.0001 0.0001  vars::import
+ 4.76   0.387  1.845   3199   0.0001 0.0006  Reader::scheme_read
+ 0.01   0.001  0.001      8   0.0001 0.0001  Reader::make_scheme_stream
+ 3.06   0.249 27.008   2277   0.0001 0.0119  main::scheme_analyze
+ 0.00   0.000  0.000      1   0.0001 0.0001  Symbol::BEGIN
+ 0.00   0.000  0.000      2   0.0001 0.0001  Exporter::as_heavy
+ 37.5   3.051  3.051  39777   0.0001 0.0001  Cons::cons_to_array
+ 0.00   0.000  0.000      4   0.0001 0.0001  String::new
+ 5.31   0.432  0.783   6181   0.0001 0.0001  Cons::array_to_cons
+ 43.4   3.536  4.079  53563   0.0001 0.0001  main::bind_vars
+ 0.00   0.000  0.003      1   0.0001 0.0027  warnings::register::import
+ 0.00   0.000  0.000      1   0.0001 0.0001  DynaLoader::dl_install_xsub
+ 0.00   0.000  0.003      1   0.0001 0.0029  Time::HiRes::import
+ 149.   12.15 27.668 227302   0.0001 0.0001  main::__ANON__
+ 0.57   0.046  0.046    989   0.0000 0.0000  main::looks_like_number
+ 0.00   0.000  0.000      3   0.0000 0.0000  warnings::import
+ 0.00   0.000  0.000      1   0.0000 0.0000  main::to_string
+ 7.71   0.627  0.627  16429   0.0000 0.0000  Cons::cons
+ 0.00   0.000  0.003      1   0.0000 0.0026  Exporter::export_to_level
+ 0.00   0.000  0.000      2   0.0000 0.0000  warnings::_mkMask
+ 0.00   0.000  0.000      1   0.0000 0.0002  overload::import
+ 0.00   0.000  0.000      7   0.0000 0.0000  Config::FETCH
+ 65.0   5.295  5.295 215330   0.0000 0.0000  main::find_var
+ 1.94   0.158  2.758   7062   0.0000 0.0004  Cons::null
+ 14.5   1.183  1.183  53563   0.0000 0.0000  main::merge_envs
+ 0.60   0.049  0.049   2271   0.0000 0.0000  main::set_var
+ 16.5   1.342  1.834  63940   0.0000 0.0000  Reader::__ANON__
+ 1.52   0.124  0.124   6156   0.0000 0.0000  Cons::cdr
+ 0.00   0.000  0.000      3   0.0000 0.0000  strict::bits
+ 0.00   0.000  0.000     27   0.0000 0.0000  main::new_symbol
+ 0.00   0.000  0.000      4   0.0000 0.0000  strict::import
+ 1.33   0.108  0.108   8017   0.0000 0.0000  Cons::car
+ 0.00   0.000  0.000      1   0.0000 0.0000  Config::import
+ 0.00   0.000  0.000      1   0.0000 0.0000  DynaLoader::dl_load_flags
+ 0.00   0.000  0.000      1   0.0000 0.0000  DynaLoader::dl_find_symbol
+ 0.00   0.000  0.003      1   0.0000 0.0027  overload::BEGIN
+ 0.00   0.000  0.000      1   0.0000 0.0000  DynaLoader::dl_undef_symbols
+ 0.00   0.000  0.000      4   0.0000 0.0001  Reader::BEGIN
+Total Elapsed Time = 143.2485 Seconds
+  User+System Time = 8.134791 Seconds
+Exclusive Times
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 0.00   0.000  0.000     10   0.0000 0.0000  UNIVERSAL::can
+ 0.00   0.000  0.000      3   0.0000 0.0000  Cons::BEGIN
+ 0.00   0.000  0.000      1   0.0000 0.0000  Exporter::Heavy::heavy_export_to_l
+                                             evel
+ 0.00   0.000  0.000      1   0.0000 0.0000  Exporter::Heavy::heavy_export
+ 0.00       -  0.000      3        - 0.0000  strict::unimport
+ 0.00       - -0.000      2        -      -  DynaLoader::BEGIN
+ 0.00       - -0.000      3        -      -  Time::HiRes::BEGIN
+
+
+time trials: 
+* (begin (time-trial 1000 (closure-tests))
+(time-trial 1000 (loop-tests)))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0789949893951416
+TOTAL TIME ELAPSED:            111.469299077988
+NET TIME:                      111.390304088593
+AVERAGE ITERATION TIME:        0.111390304088593
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.193530082702637
+TOTAL TIME ELAPSED:            207.623408079147
+NET TIME:                      207.429877996445
+AVERAGE ITERATION TIME:        0.207429877996445
+
+; UNDEF
+*
+
+
+Total Elapsed Time = 143.8469 Seconds
+  User+System Time = 48.81652 Seconds
+Exclusive Times
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 0.02   0.011  0.012      1   0.0113 0.0123  String::BEGIN
+ 0.15   0.072  0.091     13   0.0055 0.0070  main::BEGIN
+ 0.02   0.012  1.891      5   0.0024 0.3782  Reader::scheme_read_from_file
+ 0.00   0.002  0.002      1   0.0023 0.0023  DynaLoader::dl_load_flags
+ 0.00   0.001  0.001      1   0.0014 0.0014  main::Special_forms
+ 0.00   0.001  0.004      1   0.0009 0.0041  DynaLoader::bootstrap
+ 0.00   0.001  0.001      1   0.0007 0.0008  warnings::register_categories
+ 0.00   0.001  0.001      1   0.0005 0.0005  DynaLoader::dl_load_file
+ 0.00   0.000  0.000      1   0.0005 0.0005  vars::import
+ 0.00   0.000  0.000      1   0.0004 0.0004  Time::HiRes::bootstrap
+ 0.00   0.000  0.000      1   0.0003 0.0003  feature::import
+ 0.00   0.000  0.001      1   0.0003 0.0005  Exporter::export
+ 0.01   0.003  0.003     10   0.0003 0.0003  Reader::make_scheme_stream
+ 0.00   0.000  0.000      1   0.0003 0.0003  Exporter::import
+ 0.00   0.000  0.000      1   0.0002 0.0002  Exporter::Heavy::_rebuild_cache
+ 0.02   0.011 150.78     60   0.0002 2.5131  main::scheme_eval
+ 0.00   0.000  0.000      1   0.0002 0.0002  Cons::import
+ 0.19   0.093  1.499    592   0.0002 0.0025  Reader::scheme_read_delimited_list
+ 0.00   0.000  0.000      1   0.0001 0.0001  overload::OVERLOAD
+ 0.98   0.477  1.899   3213   0.0001 0.0006  Reader::scheme_read
+ 0.00   0.000  0.000      1   0.0001 0.0001  Reader::import
+ 0.57   0.280 39.316   2538   0.0001 0.0155  main::scheme_analyze
+ 0.00   0.000  0.000      1   0.0001 0.0001  Symbol::BEGIN
+ 0.00   0.000  0.000      3   0.0001 0.0001  warnings::unimport
+ 0.00   0.000  0.000      1   0.0001 0.0001  Config::import
+ 18.0   8.815 16.685 109828   0.0001 0.0002  Cons::array_to_cons
+ 35.6   17.39 33.807 244702   0.0001 0.0001  main::bind_vars
+ 21.7   10.62 10.625 156217   0.0001 0.0001  Cons::cons_to_array
+ 0.00   0.000  0.000      2   0.0001 0.0001  Exporter::as_heavy
+ 0.00   0.000  0.001      1   0.0001 0.0008  warnings::register::import
+ 136.   66.43 150.46 124908   0.0001 0.0001  main::__ANON__
+ 0.12   0.059  0.059   1105   0.0001 0.0001  main::looks_like_number
+ 0.00   0.000  0.000      3   0.0000 0.0000  warnings::import
+ 16.7   8.189  8.189 225175   0.0000 0.0000  Cons::cons
+ 0.59   0.290  0.290   8226   0.0000 0.0000  String::new
+ 0.00   0.000  0.000      1   0.0000 0.0000  DynaLoader::dl_install_xsub
+ 3.10   1.513  1.513  48338   0.0000 0.0000  main::set_var
+ 0.00   0.000  0.000      1   0.0000 0.0002  overload::import
+ 0.00   0.000  0.000      2   0.0000 0.0000  warnings::_mkMask
+ 60.9   29.75 29.754 110408   0.0000 0.0000  main::find_var
+ 0.00   0.000  0.000      3   0.0000 0.0000  strict::bits
+ 12.1   5.942  5.942 244702   0.0000 0.0000  main::merge_envs
+ 0.00   0.000  0.000      4   0.0000 0.0000  strict::import
+ 0.47   0.228  3.924  10312   0.0000 0.0004  Cons::null
+ 0.00   0.000  0.000      9   0.0000 0.0000  main::to_string
+ 2.72   1.329  1.866  64263   0.0000 0.0000  Reader::__ANON__
+ 0.39   0.192  0.192   9989   0.0000 0.0000  Cons::cdr
+ 0.00   0.000  0.001      1   0.0000 0.0007  Time::HiRes::import
+ 0.44   0.216  0.216  13727   0.0000 0.0000  Cons::car
+ 0.00   0.001  0.001     39   0.0000 0.0000  main::new_symbol
+ 0.00   0.000  0.000      7   0.0000 0.0000  Config::FETCH
+ 0.00   0.000  0.001      1   0.0000 0.0006  Exporter::export_to_level
+ 0.00   0.000  0.000      2   0.0000 0.0001  DynaLoader::BEGIN
+ 0.00   0.000  0.000      3   0.0000 0.0000  strict::unimport
+ 0.00   0.000  0.001      1   0.0000 0.0009  overload::BEGIN
+ 0.00   0.000  0.000      1   0.0000 0.0000  DynaLoader::dl_find_symbol
+Total Elapsed Time = 143.8469 Seconds
+  User+System Time = 48.81652 Seconds
+Exclusive Times
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name
+ 0.00   0.000  0.000      1   0.0000 0.0000  Exporter::Heavy::heavy_export_to_l
+                                             evel
+ 0.00   0.000  0.000      1   0.0000 0.0000  Exporter::Heavy::heavy_export
+ 0.00       -  0.000      4        - 0.0000  Reader::BEGIN
+ 0.00       - -0.000     10        -      -  UNIVERSAL::can
+ 0.00       -  0.000      3        - 0.0000  Cons::BEGIN
+ 0.00       -  0.000      3        - 0.0002  Time::HiRes::BEGIN
+ 0.00       - -0.000      1        -      -  DynaLoader::dl_undef_symbols
+ 0.00       - -0.000      6        -      -  Time::HiRes::gettimeofday

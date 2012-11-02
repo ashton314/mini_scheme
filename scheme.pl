@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+no warnings qw(recursion);
 
 BEGIN { print STDERR "Loading modules....."; }
 
@@ -410,8 +411,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @things = @{ cons_to_array(find_var('things', $env), 0) };
-#		    print "Things: @things\n";
+		    my @things = @{cons_to_array(find_var('things', $env), 0)};
 		    error("Got @{ [scalar @things] } args and expected at least 2 -- eq?\n") if scalar @things < 2;
 		    my $thing = shift @things;
 		    foreach (@things) {
@@ -533,7 +533,7 @@ sub Special_forms {
 		    my $func = find_var('function', $env);
 		    my $args = find_var('args', $env);
 
-		    $args = cons_to_array($args) if ref $args eq 'Cons';
+		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
 
 		    my $nenv = merge_envs($$func{closure_env},
 					  bind_vars($$func{args},
@@ -562,7 +562,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ cons_to_array(find_var('args', $env)) };
+		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    error("Got @{ [scalar @args] } args and expected at least 2 -- >\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -577,7 +577,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ cons_to_array(find_var('args', $env)) };
+		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    error("Got @{ [scalar @args] } args and expected at least 2 -- <\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -592,7 +592,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ cons_to_array(find_var('args', $env)) };
+		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    error("Got @{ [scalar @args] } args and expected at least 2 -- =\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -609,7 +609,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $sum = 0;
-		    map { $sum += $_ } @{ cons_to_array($args) };
+		    map { $sum += $_ } @{ cons_to_array($args, 1) };
 		    return $sum;
 		},
 	    },
@@ -620,7 +620,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $arg_ref = find_var('args', $env);
-		    my @args = @{ cons_to_array($arg_ref) };
+		    my @args = @{ cons_to_array($arg_ref, 1) };
 		    my $sum = shift @args;
 		    if (scalar @args) {
 			map { $sum -= $_ } @args;
@@ -639,7 +639,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $prod = 1;
-		    map { $prod *= $_ } @{ cons_to_array($args) };
+		    map { $prod *= $_ } @{ cons_to_array($args, 1) };
 		    return $prod;
 		},
 	    },
@@ -649,7 +649,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ cons_to_array(find_var('args', $env)) };
+		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    my $quot = shift @args;
 		    map { $quot /= $_ } @args;
 		    return $quot;
@@ -662,7 +662,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
-		    my @vals = @{ cons_to_array($args) };
+		    my @vals = @{ cons_to_array($args, 1) };
 		    my $rem = shift @vals;
 		    map { $rem %= $_ } @vals;
 		    return $rem;
@@ -689,7 +689,8 @@ sub Special_forms {
 			$thing = scheme_read($stream, "\n");
 			redo LOOP unless defined($thing);
 		    }
-		    return ref $thing eq 'ARRAY' ? array_to_cons($thing) : $thing;
+		    return ref $thing eq 'ARRAY' ? array_to_cons($thing)
+		                                 : $thing;
 		},
 		      },
             'time' => {
