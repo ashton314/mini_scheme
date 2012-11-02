@@ -31,6 +31,10 @@ Intersection: (sorted by personal idea of importance)
 `find_var' and `merge_envs' are already pretty fast. Perhaps I can
 optimize away calls to these functions. Particularly `find_var'.
 
+`merge_envs' is about as simple as you can get. Optimizing away calls
+is going to be basically the ONLY way I can think of making anything
+related to that faster.
+
 I call `cons_to_array' way too much. I should just work with cons
 structures.
 
