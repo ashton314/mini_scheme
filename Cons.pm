@@ -12,7 +12,7 @@ sub import {
 
 sub cons {
     my $class = "Cons";
-    my ($car, $cdr) = @_;
+    my ($car, $cdr, $ref) = @_;
     return bless { car => $car,
 		   cdr => $cdr }, $class;
 }

@@ -390,3 +390,66 @@ Exclusive Times
  0.00       -  0.000      3        - 0.0002  Time::HiRes::BEGIN
  0.00       - -0.000      1        -      -  DynaLoader::dl_undef_symbols
  0.00       - -0.000      6        -      -  Time::HiRes::gettimeofday
+
+Fri Nov  2 12:57:48 MDT 2012
+
+I had cons cells memoize the array they were formed from. This is a
+memory pig, and execution times seem to have increased. Removing
+optimizations...
+
+WITHOUT PROFILING {
+* (begin (time-trial 1000 (closure-tests)) (time-trial 1000
+						       (loop-tests)))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0271260738372803
+TOTAL TIME ELAPSED:            28.8330540657043
+NET TIME:                      28.8059279918671
+AVERAGE ITERATION TIME:        0.0288059279918671
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0572130680084229
+TOTAL TIME ELAPSED:            56.9986040592194
+NET TIME:                      56.9413909912109
+AVERAGE ITERATION TIME:        0.0569413909912109
+
+; UNDEF
+*
+}
+WITHOUT PROFILING AND OPTIMIZATION {
+
+* (begin (time-trial 1000 (closure-tests)) (time-trial 1000 (loop-tests)))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0269489288330078
+TOTAL TIME ELAPSED:            28.6282298564911
+NET TIME:                      28.6012809276581
+AVERAGE ITERATION TIME:        0.0286012809276581
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: -0.473623991012573
+TOTAL TIME ELAPSED:            54.6651799678802
+NET TIME:                      55.1388039588928
+AVERAGE ITERATION TIME:        0.0551388039588928
+
+; UNDEF
+* (begin (time-trial 1000 (closure-tests)) (time-trial 1000 (loop-tests)))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0266819000244141
+TOTAL TIME ELAPSED:            28.904314994812
+NET TIME:                      28.8776330947876
+AVERAGE ITERATION TIME:        0.0288776330947876
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.053325891494751
+TOTAL TIME ELAPSED:            55.1520528793335
+NET TIME:                      55.0987269878387
+AVERAGE ITERATION TIME:        0.0550987269878387
+
+; UNDEF
+*
+
+}
+
+Looks like those optimizations were bad. Killing them...
