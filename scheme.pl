@@ -546,6 +546,34 @@ sub Special_forms {
 		    }
 		},
 	    },
+	    rplaca => {
+		closure_env => {},
+		args        => ['obj', 'new-car'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $cons = find_var('obj', $env);
+		    unless (ref $cons eq 'Cons') {
+			error("$cons is not a Cons - rplaca\n");
+		    }
+		    $cons->{car} = find_var('new-car', $env);
+		    return $cons;
+		},
+		      },
+	    rplacd => {
+		closure_env => {},
+		args        => ['obj', 'new-cdr'],
+		lambda_expr => undef,
+		body => sub {
+		    my $env = shift;
+		    my $cons = find_var('obj', $env);
+		    unless (ref $cons eq 'Cons') {
+			error("$cons is not a Cons - rplacd\n");
+		    }
+		    $cons->{cdr} = find_var('new-cdr', $env);
+		    return $cons;
+		},
+		      },
 	    cons => {
 		closure_env => {},
 		args        => ['arg1', 'arg2'],

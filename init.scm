@@ -65,7 +65,7 @@
 	   (cons 'begin (cdr (car forms)))
 	   (cons 'cond (cdr forms)))))
 
-(defmacro (incf thing)
+(defmacro (incf thing)			; Warning: multiple evaluation error
   (list 'set! thing (list '+ thing 1)))
 
 (defmacro (let forms . body)
@@ -120,6 +120,9 @@
 	    (cadr condition)
 	    #f)))
 
+(define (caar lst)
+  (car (car lst)))
+
 (define (cddr lst)
   (cdr (cdr lst)))
 
@@ -145,29 +148,7 @@
 
 ;;; Backquote macros
 
-(define foo '(1 2 3))
-
-;; `(foo `(foo ,foo ,,foo) ,@foo)
-
-;; (backquote
-;;  (foo
-;;   (backquote (foo (comma foo) (comma (comma foo))))
-;;   (comma-splice foo)))
-
-;; (FOO `(FOO ,FOO ,(1 2 3)) 1 2 3)
-
-;; (append
-;;   (list (quote foo))
-;;   (list (backquote
-;; 	 (list foo (comma (comma foo))))) ; Ignoring `(... `(... ,foo ...))
-;;   foo)
-
-;; `(foo ,foo ,@foo)
-
-;; (append
-;;   (list (quote foo))
-;;   (list foo)
-;;   foo)
+(define foo '(1 2 3))			; For testing purposes
 
 (defmacro (backquote x)
   (bq-process x 1))
@@ -219,67 +200,21 @@
        ((= ,(cadr args) ,(car args)) nil)
      ,@body))
 
-;; (define *bq-simplify* #f)
+(defmacro (aif test tcl . fcl)
+  `(let ((_ ,test))
+     (if _
+	 ,tcl
+	 ,(or (and (list? fcl) (cadr fcl)) #f))))
 
-;; (defmacro (backquote x)
-;;   (bq-completely-process x))
+(define *setf-functions*
+  '((car (lambda (thing value)
+	   (rplaca thing value)))
+    (cdr (lambda (thing value)
+	   (rplacd thing value)))))
 
-;; (define (bq-completely-process x)
-;;   (let ((raw-result (bq-process x)))
-;;     (bq-remove-tokens (if *bq-simplify*
-;; 			  (bq-simplify raw-result)
-;; 			  raw-result))))
-
-;; (define (bq-process x)
-;;   (cond ((atom x)
-;; 	 (list 'bq-quote x))
-;; 	((eq? (car x) 'backquote)
-;; 	 (bq-process (bq-completely-process (cadr x))))
-;; 	((eq? (car x) 'comma) (cadr x))
-;; 	((eq? (car x) 'comma-splice)
-;; 	 (write-err ",@ after `")
-;; 	 (terpri))
-;; 	(#t (do ((p x (cdr p))
-;; 		 (q nil (cons (bracket (car p)) q)))
-;; 		((atom p)
-;; 		 (cons 'bq-append
-;; 		       (cons (reverse q) (list (list 'bq-quote p)))))
-;; 	      (cond ((eq? (car p) 'comma)
-;; 		     (unless (null (cddr p)) (write-err "Malformed ,"))
-;; 		     (cons 'bq-append
-;; 			   (cons (reverse q) (list (cadr p)))))
-;; 		    ((eq? (car p) 'comma-splice)
-;; 		     (write-err "Malformed ,@")))))))
-
-;; (define (bracket x)
-;;   (cond ((atom x)
-;; 	 (list 'bq-list (bq-process x)))
-;; 	((eq? (car x) 'comma)
-;; 	 (list 'bq-list (cadr x)))
-;; 	((eq? (car x) 'comma-splice)
-;; 	 (cadr x))
-;; 	(#t (list 'bq-list (bq-process x)))))
-
-;; (define (bq-remove-tokens x)
-;;   (cond ((eq? x 'bq-list) 'list)
-;; 	((eq? x 'bq-append) 'append)
-;; 	((eq? x 'bq-nconc) 'nconc)
-;; 	((eq? x 'bq-list) 'list)
-;; 	((eq? x 'bq-quote) 'quote)
-;; 	((atom x) x)
-;; 	((eq? (car x) 'bq-clobberable)
-;; 	 (bq-remove-tokens (cadr x)))
-;; 	((and (eq? (car x) 'bq-list)
-;; 	      (list? (cddr x))
-;; 	      (null (cdr (cddr x))))
-;; 	 (cons 'cons (maptree bq-remove-tokens (cdr x))))
-;; 	(#t (maptree bq-remove-tokens x))))
-
-;; (define (maptree fn x)
-;;   (if (atom x)
-;;       (fn x)
-;;       (let ((a (fn (car x)))
-;; 	    (d (maptree fn (cdr x))))
-;; 	(if (and (eq? a (car x)) (eq? d (cdr x)))
-;; 	    x
-;; 	    (cons a d)))))
+(defmacro (setf place value)
+  (if (list? place)
+      (aif (find-if (lambda (n) (eq? (car n) (car place))) *setf-functions*)
+	   `(,(cadr _) ,@(cdr place) ,value)
+	   `(error "Unknown setf expansion: " ,(car place)))
+      `(set! ,place ,value)))
