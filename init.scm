@@ -145,9 +145,6 @@
 
 ;;; Backquote macros
 
-(defmacro (backquote obj)
-  (bq-process obj))
-
 (define foo '(1 2 3))
 
 ;; `(foo `(foo ,foo ,,foo) ,@foo)

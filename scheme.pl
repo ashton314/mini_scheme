@@ -7,6 +7,7 @@ BEGIN { print STDERR "Loading modules....."; }
 
 use v5.10;
 use Time::HiRes qw(gettimeofday);
+use Data::Dumper;
 
 use Symbol;
 use Reader;
@@ -73,7 +74,7 @@ sub scheme_analyze {
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
 	    when ('string') { return sub { new String($$expr[1]); }; }
-	    when ('quote') { 
+	    when ('quote') {
 		given (ref $$expr[1]) {
 		    when ('ARRAY') {
 			my $cons = array_to_cons($$expr[1]);
@@ -83,6 +84,16 @@ sub scheme_analyze {
 			return sub { $$expr[1]; };
 		    }
 		}
+	    }
+	    when ('new-backquote') {
+		my @expr = @{ $expr };
+		@expr = @expr[1..$#expr];
+		my $formatted = backquote_analyze(\@expr);
+		my $form = scheme_analyze($formatted);
+		return sub {
+		    my $env = shift;
+		    return $form->($env);
+		};
 	    }
 	    when ('set!') {
 		my $var = $$expr[1];
@@ -368,6 +379,62 @@ sub set_var {			# setf
 sub error {
     my $mesg = shift;
     die $mesg;
+}
+
+sub backquote_analyze {
+    my $thing = shift;
+    my $depth = shift // 1;
+    return ['append', (map { backquote_loop($_, $depth) } @{ $thing })];
+}
+
+sub backquote_loop {
+    my $thing = shift;
+    my $depth = shift // 1;
+    if (ref $thing eq 'ARRAY') {
+	given ($$thing[0]) {
+	    when ('comma') {
+		my $temp = $thing;
+		my $i = 0;
+		while (ref $temp eq 'ARRAY' and $$temp[0] eq 'comma') {
+		    $i++;
+		    $temp = $$temp[1];
+		    if (ref $temp eq 'ARRAY' and $$temp[0] eq 'comma-splice') {
+			$i++;
+			if ($i == $depth) {
+			    $i = 'splice';
+			    last;
+			}
+			else {
+			    error("Comma-splice error near `$thing'\n");
+			}
+		    }
+		}
+		if ($i eq 'splice') {
+		    return $$temp[1];
+		}
+		elsif ($i == $depth) {
+		    return ['list', $$temp[1]];
+		}
+		else {
+		    return ['list', $$temp[0]];
+		}
+	    }
+	    when ('comma-splice') {
+		return $$thing[1];
+	    }
+	    when ('new-backquote') {
+		my @things = @{ $thing };
+		return ['list', [['quote', 'new-backquote'], backquote_analyze(\@things[1..$#things], $depth + 1)]];
+	    }
+	    default {
+		my @things = @{ $thing };
+		return backquote_analyze(\@things, $depth);
+	    }
+	}
+    }
+    else {
+	return ['list', ['quote', $thing]];
+    }
 }
 
 sub looks_like_number {		# Snarfed from Scalar::Util::PP
