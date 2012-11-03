@@ -393,7 +393,7 @@ sub backquote_loop {
     if (ref $thing eq 'ARRAY') {
 	given ($$thing[0]) {
 	    when ('comma') {
-		my $temp = $thing;
+		my $temp = $$thing[1];
 		my $i = 0;
 		while (ref $temp eq 'ARRAY' and $$temp[0] eq 'comma') {
 		    $i++;
@@ -410,13 +410,13 @@ sub backquote_loop {
 		    }
 		}
 		if ($i eq 'splice') {
-		    return $$temp[1];
+		    return $temp;
 		}
 		elsif ($i == $depth) {
-		    return ['list', $$temp[1]];
+		    return ['list', $temp];
 		}
 		else {
-		    return ['list', $$temp[0]];
+		    return ['list', $temp];
 		}
 	    }
 	    when ('comma-splice') {
@@ -424,7 +424,9 @@ sub backquote_loop {
 	    }
 	    when ('new-backquote') {
 		my @things = @{ $thing };
-		return ['list', [['quote', 'new-backquote'], backquote_analyze(\@things[1..$#things], $depth + 1)]];
+		return ['list', [['quote', 'new-backquote'],
+				 backquote_analyze($things[1],
+						   $depth + 1)]];
 	    }
 	    default {
 		my @things = @{ $thing };
