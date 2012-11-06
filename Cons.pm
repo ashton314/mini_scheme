@@ -32,6 +32,29 @@ sub null {
     return scalar @{ cons_to_array($self) } ? 0 : 1;
 }
 
+sub mapcar {
+    my $self = shift;
+    my $sub  = shift;
+    my $keep = shift // 0;
+    my @acc = ();
+    my $temp = $self;
+
+    my $stop = 0;
+    LOOP: {
+	$stop = 1 if $temp->{cdr} eq 'nil';
+	if ($keep) {
+	    push @acc, $sub->($temp->{car});
+	}
+	else {
+	    $sub->($temp->{car});
+	}
+	$temp = $temp->{cdr};
+	redo LOOP unless $stop;
+    }
+
+    return $keep ? \@acc : undef;
+}
+
 sub array_to_cons {
     my $self = shift;
 

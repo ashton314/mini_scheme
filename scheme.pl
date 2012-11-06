@@ -16,8 +16,6 @@ use String;
 
 BEGIN { print STDERR "Done.\n"; }
 
-$| = 1;
-
 my %TRACED_FUNCTIONS = ();
 my %MACROS           = ();
 my %GLOBAL_ENV       = Special_forms();
@@ -706,7 +704,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $sum = 0;
-		    map { $sum += $_ } @{ cons_to_array($args, 1) };
+		    $args->mapcar(sub { $sum += $_[0]; });
 		    return $sum;
 		},
 	    },
@@ -716,11 +714,11 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my $arg_ref = find_var('args', $env);
-		    my @args = @{ cons_to_array($arg_ref, 1) };
-		    my $sum = shift @args;
-		    if (scalar @args) {
-			map { $sum -= $_ } @args;
+		    my $args = find_var('args', $env);
+		    my $sum = $args->{car};
+		    $args = $args->{cdr};
+		    if (ref $args->{cdr} eq 'Cons') {
+			$args->mapcar(sub { $sum -= $_[0]; });
 		    }
 		    else {
 			$sum *= -1;
@@ -736,7 +734,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $prod = 1;
-		    map { $prod *= $_ } @{ cons_to_array($args, 1) };
+		    $args->mapcar(sub { $prod *= $_[0]; });
 		    return $prod;
 		},
 	    },
@@ -746,9 +744,9 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
-		    my $quot = shift @args;
-		    map { $quot /= $_ } @args;
+		    my $args =find_var('args', $env);
+		    my $quot = $args->{car};
+		    $args->{cdr}->mapcar(sub { $quot /= $_[0]; });
 		    return $quot;
 		},
 	    },
@@ -759,9 +757,8 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
-		    my @vals = @{ cons_to_array($args, 1) };
-		    my $rem = shift @vals;
-		    map { $rem %= $_ } @vals;
+		    my $rem = $args->{car};
+		    $args->{cdr}->mapcar(sub { $rem %= $_[0]; });
 		    return $rem;
 		},
 	    },
@@ -838,8 +835,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print to_string($_) } @{ cons_to_array($obj, 0) };
-		    return undef;
+		    $obj->mapcar(sub { print to_string($_); });
 		},
 	    },
 	    'write-string' => {
@@ -849,10 +845,21 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print $_ }
-		      map { ref $_ eq 'String' ? $_->{string} : to_string($_) }
-			@{ cons_to_array($obj, 0) };
-		    return undef;
+		    $obj->mapcar(sub {
+				     my $thing = shift;
+				     print (ref $thing eq 'String' ? $thing->{string} : to_string($thing)); });
+		},
+	    },
+	    'write-string-err' => {
+		args        => ['.', 'strings'],
+		lambda_expr => undef,
+		closure_env => {},
+		body => sub {
+		    my $env = shift;
+		    my $obj = find_var('strings', $env);
+		    $obj->mapcar(sub {
+				     my $thing = shift;
+				     print STDERR (ref $thing eq 'String' ? $thing->{string} : to_string($thing)); });
 		},
 	    },
 	    'error' => {
@@ -872,9 +879,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print STDERR to_string($_) }
-		      @{ cons_to_array($obj, 0) };
-		    return undef;
+		    $obj->mapcar(sub { print STDERR to_string(+shift); });
 		},
 	    },
 	    'sleep' => {

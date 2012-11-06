@@ -41,3 +41,27 @@ structures.
 I think I can optimize much of `cons_to_array' and
 `array_to_cons'. Maybe iterate over the array passed to
 `array_to_cons' backwards to elimiate massive recursion.
+
+Doing this:
+      (map - read-and-run-call-times read-call-times)
+
+      	     	      Read and Run   Read	Run
+- Cons::cons_to_array 133201   	     43957	89244
+- Cons::array_to_cons 109274	     10414	98860
+- main::bind_vars     206392	     53563	152829
+- main::find_var      948983	     215330	733653
+- main::merge_envs    206392	     53563	152829
+
+Sorting by number of read calls:
+- main::find_var      948983	     215330	733653
+- main::bind_vars     206392	     53563	152829
+- main::merge_envs    206392	     53563	152829
+- Cons::cons_to_array 133201   	     43957	89244
+- Cons::array_to_cons 109274	     10414	98860
+
+Sorting by number of run calls:
+- main::find_var      948983	     215330	733653
+- main::bind_vars     206392	     53563	152829
+- main::merge_envs    206392	     53563	152829
+- Cons::array_to_cons 109274	     10414	98860
+- Cons::cons_to_array 133201   	     43957	89244
