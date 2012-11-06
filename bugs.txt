@@ -1,0 +1,23 @@
+Mon Nov  5 21:07:20 MST 2012
+
+This bug is going to be NASTY. This is what I do:
+* (let ((a 1))
+    (map (lambda (n) (incf a n)) '(1 2 3))
+    (list a (+ a 1)))
+
+(4 5)
+* (+ 1 1 2 3)
+
+7
+*
+
+I should get the list (7 8) after running the (let) expression. Each
+time map goes through something, the lambda expression has the
+enviroment that it started with. It is not getting modified. I have a
+bad feeling about this...
+
+Also, trying to do something like:
+(let ((a 1))
+  (write a))
+
+does not work. This should not be too hard, I think.
