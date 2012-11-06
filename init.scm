@@ -65,8 +65,9 @@
 	   (cons 'begin (cdr (car forms)))
 	   (cons 'cond (cdr forms)))))
 
-(defmacro (incf thing)			; Warning: multiple evaluation error
-  (list 'set! thing (list '+ thing 1)))
+(defmacro (incf thing . amount)	; Warning: multiple evaluation error
+  (list 'set! thing (list '+ thing (if (> (length amount) 0)
+				       (car amount) 1))))
 
 (defmacro (let forms . body)
   (cons (list 'lambda (map car forms) (cons 'begin body))

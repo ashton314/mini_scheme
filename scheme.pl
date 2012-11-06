@@ -99,6 +99,34 @@ sub scheme_analyze {
 		return sub {
 		    return set_var($var, $_[0], $val->($_[0]));
 		}; }
+	    when ('define') {
+		my @expr = @{ $expr };
+		my @expression = @{ $expr };
+		shift @expression; # Knock off that 'define'
+
+		if (ref $expr[1] eq 'ARRAY') { # Function def
+		    my @arglist    = @{ shift @expression };
+		    my @body       = @expression;
+		    my $to_call =
+		      scheme_analyze(['set!', (shift @arglist),
+				      ['lambda', \@arglist, @body]]);
+		    return sub {
+			my $env = shift;
+			unless (exists $env->{env}{$expr[1][0]}) {
+			    $env->{env}{$expr[1][0]} = 1;
+			}
+			$to_call->($env);
+		    };
+		}
+		else {		# Var def
+		    my $to_call = scheme_analyze(['set!', (shift @expression),
+						  (shift @expression)]);
+		    return sub {
+			$_[0]->{env}{$expr[1]} = '';
+			$to_call->($_[0]);
+		    };
+		}
+	    }
 	    when ('defmacro') {
 		my @expr = @{ $expr };
 		shift @expr; 	# Knock off that 'defmacro'
@@ -151,34 +179,6 @@ sub scheme_analyze {
 		    return $res;
 		};
 
-	    }
-	    when ('define') {
-		my @expr = @{ $expr };
-		my @expression = @{ $expr };
-		shift @expression; # Knock off that 'define'
-
-		if (ref $expr[1] eq 'ARRAY') { # Function def
-		    my @arglist    = @{ shift @expression };
-		    my @body       = @expression;
-		    my $to_call =
-		      scheme_analyze(['set!', (shift @arglist),
-				      ['lambda', \@arglist, @body]]);
-		    return sub {
-			my $env = shift;
-			unless (exists $env->{env}{$expr[1][0]}) {
-			    $env->{env}{$expr[1][0]} = 1;
-			}
-			$to_call->($env);
-		    };
-		}
-		else {		# Var def
-		    my $to_call = scheme_analyze(['set!', (shift @expression),
-						  (shift @expression)]);
-		    return sub {
-			$_[0]->{env}{$expr[1]} = '';
-			$to_call->($_[0]);
-		    };
-		}
 	    }
 	    when ('if') {
 		my $pred = scheme_analyze($$expr[1]);
@@ -245,7 +245,7 @@ sub scheme_analyze {
 		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
 		    	error("Bad function: @{ [$expression[0]]}\n");
 		    }
-		    my %func = %{ $func_ref };
+		    my %func = %{ $func_ref }; # Is this known at compile time?
 		    my @arg_syms = @{ $func{args} };
 		    my @arg_vals = map { $_->($env) } @arg_procs;
 		    my @arg_vals_copy = @arg_vals;
@@ -368,7 +368,7 @@ sub set_var {			# setf
 	    return set_var($var, $$env{parent_env}, $val);
 	}
 	else {
-	    error("VAR $var NOT DEFINED\n");
+	    error("VAR $var NOT DEFINED @{ [caller] }\n");
 	    return undef;
 	}
     }
