@@ -245,8 +245,8 @@ sub scheme_analyze {
 		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
 		    	error("Bad function: @{ [$expression[0]]}\n");
 		    }
-		    my %func = %{ $func_ref }; # Is this known at compile time?
-		    my @arg_syms = @{ $func{args} };
+		    my %func = %{ $func_ref };
+		    my @arg_syms = @{ $func{args} }; # How much here can be done at compile time? Anything at all?
 		    my @arg_vals = map { $_->($env) } @arg_procs;
 		    my @arg_vals_copy = @arg_vals;
 		    my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
@@ -274,6 +274,24 @@ sub scheme_analyze {
 	    };
 	}
     }
+}
+
+sub compile_var_lookup {
+    my ($var, $env) = @_;
+    my $frames = 0;
+    while (defined $env) {
+	last if exists $$env{env}->{$var};
+	$frames++;
+	$env = $$env{parent_env};
+	die "Undefined var: $var at location $.\n" unless defined $env;
+    }
+    return sub {
+	my $env = shift;
+	for (0..$frames) {
+	    $env = $$env{parent_env};
+	}
+	return $$env{env}->{$var};
+    };
 }
 
 sub to_string {
