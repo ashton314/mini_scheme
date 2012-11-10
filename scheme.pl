@@ -43,9 +43,8 @@ REPL: {
     eval {
 	$to_print = scheme_eval($expr, \%GLOBAL_ENV);
     };
-    if ($@) {
-	print STDERR "$@";
-    }
+    print STDERR "$@" if $@;
+
     print "\n";
     if ($ANALYZE_VERBOSE) {
 	print "Calls to analyze: $CALLS_TO_ANALYZE\n";
@@ -67,6 +66,7 @@ sub scheme_eval {
 
 sub scheme_analyze {
     my $expr = shift;
+    my $analyze_env = shift // make_iso_env(\%GLOBAL_ENV);
     $CALLS_TO_ANALYZE++ if $ANALYZE_VERBOSE;
 
     if (ref $expr eq 'ARRAY') {
@@ -87,7 +87,7 @@ sub scheme_analyze {
 		my @expr = @{ $expr };
 		@expr = @expr[1..$#expr];
 		my $formatted = backquote_analyze(\@expr);
-		my $form = scheme_analyze($formatted);
+		my $form = scheme_analyze($formatted, $analyze_env);
 		return sub {
 		    my $env = shift;
 		    return $form->($env);
@@ -95,7 +95,7 @@ sub scheme_analyze {
 	    }
 	    when ('set!') {
 		my $var = $$expr[1];
-		my $val = scheme_analyze($$expr[2]);
+		my $val = scheme_analyze($$expr[2], $analyze_env);
 		return sub {
 		    return set_var($var, $_[0], $val->($_[0]));
 		}; }
@@ -107,9 +107,11 @@ sub scheme_analyze {
 		if (ref $expr[1] eq 'ARRAY') { # Function def
 		    my @arglist    = @{ shift @expression };
 		    my @body       = @expression;
+		    $$analyze_env{env}->{$expr[1][0]} = 1;
 		    my $to_call =
 		      scheme_analyze(['set!', (shift @arglist),
-				      ['lambda', \@arglist, @body]]);
+				      ['lambda', \@arglist, @body]],
+				     $analyze_env);
 		    return sub {
 			my $env = shift;
 			unless (exists $env->{env}{$expr[1][0]}) {
@@ -119,8 +121,10 @@ sub scheme_analyze {
 		    };
 		}
 		else {		# Var def
+		    $$analyze_env{env}->{$expr[1]} = 1;
 		    my $to_call = scheme_analyze(['set!', (shift @expression),
-						  (shift @expression)]);
+						  (shift @expression)],
+						 $analyze_env);
 		    return sub {
 			$_[0]->{env}{$expr[1]} = '';
 			$to_call->($_[0]);
@@ -133,7 +137,10 @@ sub scheme_analyze {
 
 		my @arg_list = @{ shift @expr };
 		my $macro = shift @arg_list;
-		my $body = scheme_analyze(['begin', @expr]);
+		my %arg_hash = map { $_ => 1 } @arg_list;
+		$$analyze_env{env}->{$macro} = 1;
+		$analyze_env = merge_iso_envs(\%arg_hash, $analyze_env);
+		my $body = scheme_analyze(['begin', @expr], $analyze_env);
 
 		$MACROS{$macro} = {
 		    body => sub {
@@ -157,8 +164,10 @@ sub scheme_analyze {
 		my $arg_hash = bind_vars($macro_args, \@to_expand);
 		my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
 #		print STDERR "Expansion: @{ [to_string($expanded)] }\n";
-		my $to_analyze = cons_to_array($expanded);
-		my $proc = scheme_analyze($to_analyze);
+		my $to_analyze =
+		  ref $expanded eq 'Cons' ? cons_to_array($expanded)
+		                          : $expanded;
+		my $proc = scheme_analyze($to_analyze, $analyze_env);
 		return sub {
 		    my $env = shift;
 		    return $proc->($env);
@@ -168,8 +177,8 @@ sub scheme_analyze {
 		my @expr = @{ $expr };
 		shift @expr; 	# Knock off that 'while'
 
-		my $cond = scheme_analyze(shift @expr);
-		my $body = scheme_analyze(['begin', @expr]);
+		my $cond = scheme_analyze(shift @expr, $analyze_env);
+		my $body = scheme_analyze(['begin', @expr], $analyze_env);
 		return sub {
 		    my $env = shift;
 		    my $res = '#f';
@@ -181,9 +190,9 @@ sub scheme_analyze {
 
 	    }
 	    when ('if') {
-		my $pred = scheme_analyze($$expr[1]);
-		my $tcl  = scheme_analyze($$expr[2]);
-		my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3]) : 0;
+		my $pred = scheme_analyze($$expr[1], $analyze_env);
+		my $tcl  = scheme_analyze($$expr[2], $analyze_env);
+my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 		return sub {
 		    my $env = shift;
 		    if ($pred->($env) ne '#f') {
@@ -203,7 +212,7 @@ sub scheme_analyze {
 		my $env = shift;
 		my @block = @{ $expr };
 		shift @block;	# Cut off the 'BEGIN'
-		my @exprs = map { scheme_analyze($_) } @block;
+		my @exprs = map { scheme_analyze($_, $analyze_env) } @block;
 		return sub {
 		    my $env = shift;
 		    for my $expr (@exprs[0..($#exprs-1)]) {
@@ -216,7 +225,11 @@ sub scheme_analyze {
 		my @expression = @{ $expr };
 		shift @expression; # Cut off the 'LAMBDA'
 		my $params = shift @expression;
-		my $body = scheme_analyze(['begin', @expression]);
+		if (ref $params eq 'ARRAY') {
+		    my %arg_hash = map { $_ => 1 } @{ $params };
+		    $analyze_env = merge_iso_envs(\%arg_hash, $analyze_env);
+		}
+	my $body = scheme_analyze(['begin', @expression], $analyze_env);
 
 		return sub {
 		    my $eval_env = shift;
@@ -234,7 +247,7 @@ sub scheme_analyze {
 
 		my @expression = @{ $expr };
 		my ($func_proc, @arg_procs) =
-		  map { scheme_analyze($_) } @expression;
+		  map { scheme_analyze($_, $analyze_env) } @expression;
 
 		return sub {
 		    my $env = shift;
@@ -242,11 +255,16 @@ sub scheme_analyze {
 		    eval {
 			$func_ref = $func_proc->($env);
 		    };
+
 		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
-		    	error("Bad function: @{ [$expression[0]]}\n");
+		    	error("Bad function: @{ [$expression[0]]} at $.\n");
 		    }
+
+		    # How much here can be done at compile time?
+		    # Anything at all?
+
 		    my %func = %{ $func_ref };
-		    my @arg_syms = @{ $func{args} }; # How much here can be done at compile time? Anything at all?
+		    my @arg_syms = @{ $func{args} }; 
 		    my @arg_vals = map { $_->($env) } @arg_procs;
 		    my @arg_vals_copy = @arg_vals;
 		    my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
@@ -254,10 +272,14 @@ sub scheme_analyze {
 					  $arg_hash);
 
 		    if ($TRACED_FUNCTIONS{$expression[0]}) {
-			print "CALLING FUNCTION: @{ [$expression[0]] }\n";
-			print "            ARGS: @{ [map {to_string($_)} @arg_vals_copy] }\n";
+			print STDERR "CALLING FUNCTION: @{[$expression[0]]}\n";
+			print STDERR "            ARGS: @{ [map {to_string($_)} @arg_vals_copy] }\n";
 		    }
-		    return $func{body}->($nenv);
+		    my $result = $func{body}->($nenv);
+		    if ($TRACED_FUNCTIONS{$expression[0]}) {
+			print STDERR "          RESULT: $result\n";
+		    }
+		    return $result;
 		};
 	    }
 	}
@@ -268,30 +290,76 @@ sub scheme_analyze {
 		return $expr;
 	    };
 	}
-	else {		# Variable
+	elsif (substr($expr, 0, 1) eq ':') { # Keywords
 	    return sub {
-		return find_var($expr, $_[0]);
+		return $expr;
 	    };
+	}
+	else {		# Variable
+	    return 
+	      compile_var_lookup($expr, $analyze_env) //
+		sub {
+#		    print STDERR "Manual variable lookup: $expr\n";
+		    return find_var($expr, $_[0]);
+		};
 	}
     }
 }
 
 sub compile_var_lookup {
     my ($var, $env) = @_;
+#    print "Caller: @{ [caller] }\n" unless defined($var);
     my $frames = 0;
     while (defined $env) {
+	last unless defined($$env{env});
 	last if exists $$env{env}->{$var};
 	$frames++;
 	$env = $$env{parent_env};
-	die "Undefined var: $var at location $.\n" unless defined $env;
+#	die "Undefined var: $var at location: $.\n" unless defined $env;
+	return undef unless defined($env); # Dynamic variable lookup
     }
     return sub {
-	my $env = shift;
-	for (0..$frames) {
-	    $env = $$env{parent_env};
+#	print "Looking up: $var Frames: $frames\n";
+	my $enviro = shift;
+	for (1..$frames) {
+	    $enviro = $$enviro{parent_env};
 	}
-	return $$env{env}->{$var};
+	return $$enviro{env}->{$var};
     };
+}
+
+sub merge_iso_envs {
+    # Takes an env hash, and an enviroment iso, and makes a new
+    # enviroment iso with the env hash as `env', and the enviroment
+    # iso as `parent_env'.
+
+    my ($env, $iso_parent) = @_;
+    return { env => make_iso_hash($env),
+	     parent_env => $iso_parent };
+}
+
+sub make_iso_env {
+    # Takes an enviroment, and returns a new enviroment that is
+    # structurally equivalent to the argument, except without the
+    # values copied.
+
+    my $env = shift;
+    return { env => make_iso_hash($$env{env}),
+	     parent_env => (defined($$env{parent_env}) ?
+			    make_iso_env($$env{parent_env}) : undef)
+	   };
+}
+
+sub make_iso_hash {
+    # Takes a hash reference, and returns a hash referance that has
+    # the same keys (but not values) as the hash ref passed in.
+
+    my $hash_ref = shift;
+    my %new_hash = ();
+    foreach (keys %{ $hash_ref }) {
+	$new_hash{$_} = 1;
+    }
+    return \%new_hash;
 }
 
 sub to_string {
@@ -359,7 +427,7 @@ sub merge_envs {
 sub find_var {
     my ($var, $env) = @_;
     my $this_env = $$env{env};
-    print STDERR "Var: @{ [caller] }\n" unless defined($var);
+#    print STDERR "Var: @{ [caller] }\n" unless defined($var);
     if (exists $$this_env{$var}) {
 	return $$this_env{$var};
     }

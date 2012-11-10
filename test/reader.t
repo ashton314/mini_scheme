@@ -9,6 +9,9 @@ BEGIN {
 use Data::Dumper;
 use Reader;
 
-print "Expr: ";
-my $thing = scheme_read(0);
-print "Thing: " . Dumper($thing) . "\n";
+while (42) {
+    print "Expr: ";
+    my $thing = scheme_read(0);
+    next unless defined $thing;
+    print "Thing: " . Dumper($thing) . "\n\n";
+}
