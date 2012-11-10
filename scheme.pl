@@ -23,6 +23,8 @@ my %GLOBAL_ENV       = Special_forms();
 my $CALLS_TO_ANALYZE = 0;
 my $ANALYZE_VERBOSE  = 0;
 
+$| = 1;
+
 my $init_fh;
 if (open $init_fh, '<', 'init.scm') {
     print STDERR "Loading init file...";
@@ -396,7 +398,6 @@ sub to_string {
 
 sub bind_vars {
     my ($sym_ref, $val_ref) = @_;
-#    print STDERR "Caller: @{ [caller] }\n";
     my @syms = @{ $sym_ref };
     my @vals = @{ $val_ref };
     my %env = ();
@@ -803,8 +804,8 @@ sub Special_forms {
 		    my $args = find_var('args', $env);
 		    my $sum = $args->{car};
 		    $args = $args->{cdr};
-		    if (ref $args->{cdr} eq 'Cons') {
-			$args->mapcar(sub { $sum -= $_[0]; });
+		    if (ref $args eq 'Cons') {
+			$args->mapcar(sub { $sum -= shift; });
 		    }
 		    else {
 			$sum *= -1;
