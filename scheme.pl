@@ -396,27 +396,49 @@ sub to_string {
     return $ret;
 }
 
+## new, broken, but hopfully possessing the potential to be faster version
+
 sub bind_vars {
-    my ($sym_ref, $val_ref) = @_;
-    my @syms = @{ $sym_ref };
-    my @vals = @{ $val_ref };
-    my %env = ();
-    my $slurpy = 0;
-    for my $sym (@syms) {
-	if ($slurpy) {
-	    $env{$sym} = array_to_cons(\@vals);
+    my ($syms, $vals) = @_;
+    my %new_env = ();
+
+    for my $i (0..(scalar @$syms - 1)) {
+	if ($$syms[$i] eq '.') { # slupry
+	    $new_env{$$syms[$i+1]} = array_to_cons(\($vals->[$i..-1]));
 	    last;
 	}
-	elsif ($sym eq '.') {
-	    $slurpy = 1;
-	    next;
-	}
 	else {
-	    $env{$sym} = shift @vals;
+	    $new_env{$$syms[$i]} = $$vals[$i];
 	}
     }
-    return \%env;
+    return \%new_env;
 }
+
+
+## old, slow, but working version
+
+# sub bind_vars {
+#     my ($sym_ref, $val_ref) = @_;
+#     my @syms = @{ $sym_ref };
+#     my @vals = @{ $val_ref };
+#     my %env = ();
+#     my $slurpy = 0;
+#     for my $sym (@syms) {
+# 	if ($slurpy) {
+# 	    $env{$sym} = array_to_cons(\@vals);
+# 	    last;
+# 	}
+# 	elsif ($sym eq '.') {
+# 	    $slurpy = 1;
+# 	    next;
+# 	}
+# 	else {
+# 	    $env{$sym} = shift @vals;
+# 	}
+#     }
+#     return \%env;
+# }
+
 
 sub merge_envs {
     my ($parent, $new) = @_;

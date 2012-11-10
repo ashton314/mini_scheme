@@ -62,7 +62,7 @@ sub array_to_cons {
 	return $self;
     }
     elsif (ref $self ne 'ARRAY') {
-	print STDERR "Argument is not an array ref. -- array_to_cons\n";
+	print STDERR "$self is not an array ref. -- array_to_cons\n";
 	return undef;
     }
     else {
