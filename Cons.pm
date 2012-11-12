@@ -13,8 +13,10 @@ sub import {
 sub cons {
     my $class = "Cons";
     my ($car, $cdr, $ref) = @_;
-    return bless { car => $car,
-		   cdr => $cdr }, $class;
+    return bless { car => $car,	# WARNING: may need to use Scalar::Util::weaken
+		   cdr => $cdr,
+#		   'last' => $cdr->{last} eq 'nil' ? $car : $cdr->{last},
+		 }, $class;
 }
 
 sub car {

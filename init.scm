@@ -95,7 +95,7 @@
 (defmacro (push what where)
   (list 'set! where (list 'cons what where)))
 
-;;; Non-bootstrapping functions
+;; ;;; Non-bootstrapping functions
 
 (define (write-ln . strings)
   (apply write-string strings)
@@ -139,7 +139,7 @@
 (define (cdar lst)
   (cdr (car lst)))
 
-(define (append . lsts)
+(define (_append . lsts)
   (let ((acc nil))
     (map (lambda (n)
 	   (map (lambda (m) (push m acc))
@@ -155,7 +155,7 @@
   (bq-process x 1))
 
 (define (bq-process x depth)
-  (cons 'append
+  (cons '_append
   	(let ((thing (map (lambda (n) (bq-loop n depth)) x)))
 	  thing)))
 
@@ -181,11 +181,11 @@
 	 (cadr x))
 	((eq? (car x) 'backquote)
 	 (list 'list
-	       (list 'append (apply (lambda (n) (bq-process n (+ depth 1)))
+	       (list '_append (apply (lambda (n) (bq-process n (+ depth 1)))
 				       (cdr x)))))
 	(#t (let ((thing (map (lambda (n)
 				(bq-loop n depth)) x)))
-	      (list 'list (cons 'append thing))))))
+	      (list 'list (cons '_append thing))))))
 
 ;;; Bootstrap++
 

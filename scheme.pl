@@ -30,7 +30,10 @@ if (open $init_fh, '<', 'init.scm') {
     print STDERR "Loading init file...";
     my $data = scheme_read_from_file($init_fh);
     print STDERR "Done.\nParsing init file...";
-    map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
+    eval {
+	map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
+    };
+    print STDERR "ERROR: $@" if $@;
     print STDERR "Done.\n\n";
 }
 
@@ -240,6 +243,7 @@ my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 			    args        => $params,
 			    lambda_expr => \@expression,
 			    body        => $body,
+			    name        => '__ANNON__',
 			   };
 		};
 	    }
@@ -404,13 +408,15 @@ sub bind_vars {
 
     for my $i (0..(scalar @$syms - 1)) {
 	if ($$syms[$i] eq '.') { # slupry
-	    $new_env{$$syms[$i+1]} = array_to_cons(\($vals->[$i..-1]));
+	    my @rest = @$vals[$i..-1];
+	    $new_env{$$syms[$i+1]} = array_to_cons(\@rest);
 	    last;
 	}
 	else {
 	    $new_env{$$syms[$i]} = $$vals[$i];
 	}
     }
+    print "Env: " . Dumper(\%new_env);
     return \%new_env;
 }
 
@@ -602,7 +608,7 @@ sub Special_forms {
 	    quit => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => undef,
+		lambda_expr => 'quit',
 		body        => sub {
 		    print "Happy Happy Joy Joy.\n";
 		    exit;
@@ -611,7 +617,7 @@ sub Special_forms {
 	    car => {
 		closure_env => {},
 		args        => ['cons-cell'],
-		lambda_expr => undef,
+		lambda_expr => 'car',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('cons-cell', $env);
@@ -619,7 +625,7 @@ sub Special_forms {
 			return $$cons[0];
 		    }
 		    elsif (ref $cons eq 'Cons') {
-			return $cons->car;
+			return $cons->{car};
 		    }
 		    elsif ($cons eq 'nil') {
 			return 'nil';
@@ -634,7 +640,7 @@ sub Special_forms {
 	    cdr => {
 		closure_env => {},
 		args        => ['cons-cell'],
-		lambda_expr => undef,
+		lambda_expr => 'cdr',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('cons-cell', $env);
@@ -653,10 +659,22 @@ sub Special_forms {
 		    }
 		},
 	    },
+	    'last' => {
+		closure_env => {},
+		args        => ['obj'],
+		lambda_expr => 'last',
+		body => sub {
+		    my $env = shift;
+		    my $obj = find_var('obj', $env);
+		    error("$obj is not a Cons - last\n")
+		      unless ref $obj eq 'Cons';
+		    return $obj->{last};
+		},
+		      },
 	    rplaca => {
 		closure_env => {},
 		args        => ['obj', 'new-car'],
-		lambda_expr => undef,
+		lambda_expr => 'rplaca',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('obj', $env);
@@ -670,7 +688,7 @@ sub Special_forms {
 	    rplacd => {
 		closure_env => {},
 		args        => ['obj', 'new-cdr'],
-		lambda_expr => undef,
+		lambda_expr => 'rplacd',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('obj', $env);
@@ -684,7 +702,7 @@ sub Special_forms {
 	    cons => {
 		closure_env => {},
 		args        => ['arg1', 'arg2'],
-		lambda_expr => undef,
+		lambda_expr => 'cons',
 		body => sub {
 		    my $env = shift;
 		    my ($arg1, $arg2) = 
@@ -697,7 +715,7 @@ sub Special_forms {
 	    list => {
 		closure_env => {},
 		args        => ['.', 'lst'],
-		lambda_expr => undef,
+		lambda_expr => 'list',
 		body => sub {
 		    my $env = shift;
 		    return find_var('lst', $env);
@@ -706,7 +724,7 @@ sub Special_forms {
 	    'not' => {
 		      closure_env => {},
 		      args        => ['obj'],
-		      lambda_expr => undef,
+		      lambda_expr => 'not',
 		      body => sub {
 			  my $env = shift;
 			  my $obj = find_var('obj', $env);
@@ -716,7 +734,7 @@ sub Special_forms {
 	    'list?' => {
 			closure_env => {},
 			args        => ['obj'],
-			lambda_expr => undef,
+			lambda_expr => 'list?',
 			body => sub {
 			    my $env = shift;
 			    my $obj = find_var('obj', $env);
@@ -731,13 +749,14 @@ sub Special_forms {
 	    apply => {
 		closure_env => {},
 		args        => ['function', 'args'],
-		lambda_expr => undef,
+		lambda_expr => 'apply',
 		body        => sub {
 		    my $env = shift;
 		    my $func = find_var('function', $env);
 		    my $args = find_var('args', $env);
 
 		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
+#		    print Dumper($func) if $args eq 'nil';
 
 		    my $nenv = merge_envs($$func{closure_env},
 					  bind_vars($$func{args},
@@ -748,7 +767,7 @@ sub Special_forms {
 	    null => {
 		closure_env => {},
 		args        => ['cons-cell'],
-		lambda_expr => undef,
+		lambda_expr => 'null',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('cons-cell', $env);
