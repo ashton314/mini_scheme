@@ -400,7 +400,7 @@ sub to_string {
     return $ret;
 }
 
-## new, broken, but hopfully possessing the potential to be faster version
+## hopefully a faster version of bind_vars
 
 sub bind_vars {
     my ($syms, $vals) = @_;
@@ -408,7 +408,8 @@ sub bind_vars {
 
     for my $i (0..(scalar @$syms - 1)) {
 	if ($$syms[$i] eq '.') { # slupry
-	    my @rest = @$vals[$i..-1];
+	    my @rest = @$vals;
+	    @rest = @rest[$i..$#rest];
 	    $new_env{$$syms[$i+1]} = array_to_cons(\@rest);
 	    last;
 	}
@@ -416,7 +417,6 @@ sub bind_vars {
 	    $new_env{$$syms[$i]} = $$vals[$i];
 	}
     }
-    print "Env: " . Dumper(\%new_env);
     return \%new_env;
 }
 
@@ -756,11 +756,10 @@ sub Special_forms {
 		    my $args = find_var('args', $env);
 
 		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
-#		    print Dumper($func) if $args eq 'nil';
 
-		    my $nenv = merge_envs($$func{closure_env},
-					  bind_vars($$func{args},
-							  $args));
+		    my $bound = bind_vars($$func{args}, $args);
+		    my $nenv = merge_envs($$func{closure_env}, $bound);
+
 		    return $$func{body}->($nenv);
 		},
 	    },

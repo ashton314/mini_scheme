@@ -38,6 +38,7 @@ sub mapcar {
     my $self = shift;
     my $sub  = shift;
     my $keep = shift // 0;
+
     my @acc = ();
     my $temp = $self;
 
