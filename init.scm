@@ -139,7 +139,7 @@
 (define (cdar lst)
   (cdr (car lst)))
 
-(define (_append . lsts)
+(define (append . lsts)
   (let ((acc nil))
     (map (lambda (n)
 	   (map (lambda (m) (push m acc))
@@ -147,15 +147,18 @@
 	 lsts)
     (reverse acc)))
 
+;; (define (append . lsts)
+;;   (apply append lsts))
+
 ;;; Backquote macros
 
 (define foo '(1 2 3))			; For testing purposes
 
 (defmacro (backquote x)
-  (bq-process x 1))
+  (bq-simplify (bq-process x 1)))
 
 (define (bq-process x depth)
-  (cons '_append
+  (cons 'append
   	(let ((thing (map (lambda (n) (bq-loop n depth)) x)))
 	  thing)))
 
@@ -181,11 +184,44 @@
 	 (cadr x))
 	((eq? (car x) 'backquote)
 	 (list 'list
-	       (list '_append (apply (lambda (n) (bq-process n (+ depth 1)))
+	       (list 'append (apply (lambda (n) (bq-process n (+ depth 1)))
 				       (cdr x)))))
 	(#t (let ((thing (map (lambda (n)
 				(bq-loop n depth)) x)))
-	      (list 'list (cons '_append thing))))))
+	      (list 'list (cons 'append thing))))))
+
+(define (bq-simplify lst)
+  (write-string-err "Simplifying...")
+  (if (eq? (car lst) 'append)
+      (let ((acc nil)
+	    (append-acc nil))
+	(map (lambda (n)
+	       (if (eq? (car n) 'no-append)
+		   (if (not (null append-acc))
+		       (begin
+			 (push (cons 'list (apply append (reverse append-acc)))
+			       acc)
+			 (set! append-acc nil)
+			 (push (cadr n) acc))
+		       (push (cadr n) acc))
+		   (push n append-acc)))
+	     (let ((pre-process
+		    (map (lambda (n)
+			   (if (and (list? n)
+				    (eq? (car n) 'list))
+			       (cdr n)
+			       (list 'no-append n)))
+			 (cdr lst))))
+	       pre-process))
+	(if (not (null append-acc))
+	    (push (cons 'list (apply append (reverse append-acc)))
+		  acc))
+	(write-string-err "Done.")
+	(terpri-err)
+	(if (= (length acc) 1)
+	    (car (reverse acc))
+	    (cons 'append (reverse acc))))
+      lst))
 
 ;;; Bootstrap++
 

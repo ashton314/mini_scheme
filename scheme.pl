@@ -973,13 +973,13 @@ sub Special_forms {
 		     },
 		    },
 	    'write' => {
-		args        => ['.', 'strings'],
+		args        => ['.', 'things'],
 		lambda_expr => undef,
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
-		    my $obj = find_var('strings', $env);
-		    $obj->mapcar(sub { print to_string($_); });
+		    my $objs = find_var('things', $env);
+		    $objs->mapcar(sub { print to_string(+shift); });
 		},
 	    },
 	    'write-string' => {
