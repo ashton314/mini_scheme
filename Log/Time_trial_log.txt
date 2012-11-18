@@ -602,3 +602,49 @@ Exclusive Times
  0.00       -  0.000      1        - 0.0000  String::BEGIN
  0.00       -  0.000      1        - 0.0002  Exporter::export_to_level
     -       -  1.629      5        - 0.3258  Reader::scheme_read_from_file
+
+Sat Nov 17 16:52:20 MST 2012
+
+Implemented lexical addressing for variable assignments. Results
+without profiling:
+
+* (begin (time-trial 1000 (closure-tests)) (time-trial 1000
+  (loop-tests)))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0264339447021484
+TOTAL TIME ELAPSED:            27.3786449432373
+NET TIME:                      27.3522109985352
+AVERAGE ITERATION TIME:        0.0273522109985352
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0544180870056152
+TOTAL TIME ELAPSED:            53.3718671798706
+NET TIME:                      53.317449092865
+AVERAGE ITERATION TIME:        0.053317449092865
+
+; UNDEF
+*
+
+Hhmmm... Not too encouraging. Trying again...
+
+* (begin (time-trial 1000 (closure-tests)) (time-trial 1000
+  (loop-tests)))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0265870094299316
+TOTAL TIME ELAPSED:            27.7317709922791
+NET TIME:                      27.7051839828491
+AVERAGE ITERATION TIME:        0.0277051839828491
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0537939071655273
+TOTAL TIME ELAPSED:            54.5830588340759
+NET TIME:                      54.5292649269104
+AVERAGE ITERATION TIME:        0.0545292649269104
+
+; UNDEF
+*
+
+Not exactly encouraging... I got 26 seconds with the closures the
+first time I ran the tests. Oh well. Removing "optimizations".

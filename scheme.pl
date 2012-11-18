@@ -101,7 +101,8 @@ sub scheme_analyze {
 	    when ('set!') {
 		my $var = $$expr[1];
 		my $val = scheme_analyze($$expr[2], $analyze_env);
-		return sub {
+		return
+		  sub {
 		    return set_var($var, $_[0], $val->($_[0]));
 		}; }
 	    when ('define') {
@@ -305,7 +306,6 @@ my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 	    return 
 	      compile_var_lookup($expr, $analyze_env) //
 		sub {
-#		    print STDERR "Manual variable lookup: $expr\n";
 		    return find_var($expr, $_[0]);
 		};
 	}
@@ -314,23 +314,40 @@ my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 
 sub compile_var_lookup {
     my ($var, $env) = @_;
-#    print "Caller: @{ [caller] }\n" unless defined($var);
     my $frames = 0;
     while (defined $env) {
 	last unless defined($$env{env});
 	last if exists $$env{env}->{$var};
 	$frames++;
 	$env = $$env{parent_env};
-#	die "Undefined var: $var at location: $.\n" unless defined $env;
 	return undef unless defined($env); # Dynamic variable lookup
     }
     return sub {
-#	print "Looking up: $var Frames: $frames\n";
 	my $enviro = shift;
 	for (1..$frames) {
 	    $enviro = $$enviro{parent_env};
 	}
 	return $$enviro{env}->{$var};
+    };
+}
+
+sub compile_var_assignment {
+    my ($var, $env, $value) = @_;
+    my $frames = 0;
+    while (defined $env) {
+	last unless defined($$env{env});
+	last if exists $$env{env}->{$var};
+	$frames++;
+	$env = $$env{parent_env};
+	return undef unless defined($env); # Dynamic variable lookup
+    }
+    return sub {
+	my $enviro = shift;
+	my $eval_enviro = $enviro;
+	for (1..$frames) {
+	    $enviro = $$enviro{parent_env};
+	}
+	return $$enviro{env}->{$var} = $value->($eval_enviro);
     };
 }
 

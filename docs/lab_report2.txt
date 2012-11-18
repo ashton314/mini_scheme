@@ -21,11 +21,14 @@ observed.
 
 ** 1 computer, running FreeBSD v8.2
 ** MIT Scheme v9.0.1
+** CMU Common Lisp 19F
 ** Perl v5.14.1
 ** GNU Emacs v23.2.1
 ** Git v1.7.9.6
 
 * Methods
+
+** Overview of Evaluators
 
 Two versions of a simple Scheme interpreter were written: one that
 used the "traditional" method of execution, and a second that used the
@@ -67,6 +70,30 @@ that, when given the evaluation environment, returns the result of the
 expression. Thus, all EVAL must do is call the function returned by
 ANALYZE being called on the expression, with the evaluation
 environment.
+
+** Differences
+
+The two evaluators written for this project had a few differences from
+the MIT Scheme evaluator. Most of the differences were things snarfed
+from CMU Common Lisp
+
+Differences with both interpreters:
+ - The function `call-with-current-continuation' was not implemented.
+ - The symbol `nil' was a self-evaluating form. *
+ - The special form `defmacro' was used for syntactic extensions. *
+ - The symbol `string' was a special form, just for the sake of
+   implementation.
+ - Tail-call optimizations were not performed.
+
+ * Simmilar to or snarfed from CMU Common Lisp
+
+
+** Optimizations
+
+Several optimization opportunites presented themselves in the
+syntactic analyzer. The optimizations are listed below:
+
+- Lexical Addressing (compilation of variable lookups)
 
 * Data
 
