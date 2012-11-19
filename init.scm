@@ -191,7 +191,6 @@
 	      (list 'list (cons 'append thing))))))
 
 (define (bq-simplify lst)
-  (write-string-err "Simplifying...")
   (if (eq? (car lst) 'append)
       (let ((acc nil)
 	    (append-acc nil))
@@ -216,8 +215,6 @@
 	(if (not (null append-acc))
 	    (push (cons 'list (apply append (reverse append-acc)))
 		  acc))
-	(write-string-err "Done.")
-	(terpri-err)
 	(if (= (length acc) 1)
 	    (car (reverse acc))
 	    (cons 'append (reverse acc))))
