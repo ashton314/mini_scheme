@@ -1,1 +1,21 @@
-(write <var>) does not work.
+The following:
+
+  (define foo '(1 2 3))
+  (define zoop foo)
+
+  (eq? foo zoop)			; Returns #t: This is good.
+  (eq? (cdr foo) (cdr zoop))		; Returns #f: This is VERY VERY BAD!!
+
+How am I going to fix that? Will I have to use nested arrays like so:
+
+  [1, [2, [3, nil]]]
+
+Will that drop my speed? Most likely. Is there any way around this? I
+cannot think of any at the moment. Fie.
+
+On the plus side, nested arrays like this will be easier to write
+cons() and dotted notation with. On the down side, this could be a
+major performance penalty.
+
+Add flat arrays as a data type for speed? I'll still need the lists,
+though. Fie.
