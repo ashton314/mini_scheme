@@ -757,3 +757,37 @@ Exclusive Times
  0.00       - -0.000      2        -      -  DynaLoader::dl_undef_symbols
  0.00       -  0.000      1        - 0.0000  String::BEGIN
  0.00       -  0.000      1        - 0.0001  overload::import
+
+
+Mon Nov 19 21:38:30 MST 2012
+
+I've replaced all of the cons'es with Perl arrays. Results from just
+the benchmark:
+
+* (time-trial 1000 (closure-tests))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0226030349731445
+TOTAL TIME ELAPSED:            23.5542039871216
+NET TIME:                      23.5316009521484
+AVERAGE ITERATION TIME:        0.0235316009521484
+
+; UNDEF
+* (time-trial 1000 (loop-tests))
+[====================================================================================================]
+[====================================================================================================]
+ANALYZATION AND ONE EXECUTION: 0.0360450744628906
+TOTAL TIME ELAPSED:            36.0045351982117
+NET TIME:                      35.9684901237488
+AVERAGE ITERATION TIME:        0.0359684901237488
+
+; UNDEF
+*
+
+Results:      Dropped             Percent Dropped
+  Closures:   4.173583030700701   15.064267515004987
+  Loops:      18.5607748031616	  34.03819000318449
+
+Looks good! I still need to implement dotted tail notation with
+reading and writing. Also, a more efficient way to take the CDR of an
+array ref would be nice. Hhmmm...
