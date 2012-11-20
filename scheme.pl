@@ -16,6 +16,9 @@ use String;
 
 BEGIN { print STDERR "Done.\n"; }
 
+my @FILES_LOADING    = ();
+my $FILES_LOADED     = 0;
+
 my %TRACED_FUNCTIONS = ();
 my %MACROS           = ();
 my %GLOBAL_ENV       = Special_forms();
@@ -201,7 +204,8 @@ sub scheme_analyze {
 my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 		return sub {
 		    my $env = shift;
-		    if ($pred->($env) ne '#f') {
+		    my $test_val = $pred->($env);
+		    if ((! defined($test_val)) || $test_val ne '#f') {
 			return $tcl->($env);
 		    }
 		    else {
@@ -950,13 +954,27 @@ sub Special_forms {
 			 if (-e $file) {
 			     if (-r $file) {
 				 my $fh;
+				 my $loading = @FILES_LOADING;
+				 my $loaded_so_far = $FILES_LOADED;
+				 print STDERR "\n" if $loading;
+				 print STDERR " " foreach 1..$loading;
 				 if (open $fh, '<', $file) {
 				     print STDERR "Reading $file...";
 				     my $data = scheme_read_from_file($fh);
-				     print STDERR "Done.\nEvaluating $file...";
+				     print STDERR "Done.\n";
+				     print STDERR (" " x $loading .
+						   "Evaluating $file...");
+			     push @FILES_LOADING, "Evaluating $file...";
 				     map { scheme_eval($_, \%GLOBAL_ENV) }
 				       @{ $data };
-				     print STDERR "Done.\n";
+				     my $self = pop @FILES_LOADING;
+				     if ($loaded_so_far != $FILES_LOADED) {
+					 print STDERR "\n";
+					 print STDERR " " x $loading . $self;
+					 print STDERR "Done.\n";
+				     }
+				     print STDERR "Done.";
+				     $FILES_LOADED++;
 				     return '#t';
 				 }
 				 else {
@@ -964,7 +982,7 @@ sub Special_forms {
 				 }
 			     }
 			     else {
-				 error("File $file not readable\n");
+				 error("File $file not readable.\n");
 			     }
 			 }
 			 else {
@@ -1066,6 +1084,27 @@ sub Special_forms {
 			return undef;
 		    },
 		   },
+	    macroexpand => {
+			    closure_env => {},
+			    args => ['form'],
+			    lambda_expr => undef,
+			    body => sub {
+				my $env = shift;
+				my $form = find_var('form', $env);
+				my $form_ref = cons_to_array($form);
+if (exists $MACROS{$$form_ref[0]}) { 
+    my %macro = %{ $MACROS{$$form_ref[0]} };
+    my ($macro_body, $macro_args) = map { $macro{$_} }
+      qw(body args);
+    my @expr = @{ $form_ref };
+    shift @expr;
+    my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
+			    : $_ } @expr;
+    my $arg_hash = bind_vars($macro_args, \@to_expand);
+    return $macro_body->(\%GLOBAL_ENV, $arg_hash);
+}
+			    },
+			   },
 	    # dumper => {
 	    # 	closure_env => {},
 	    # 	args        => ['thing'],

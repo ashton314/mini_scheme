@@ -112,11 +112,12 @@
 (defmacro (do forms condition . body)	; I needed that remove-if function
   (list 'let (map (lambda (form) (list (car form) (cadr form))) forms)
 	(list 'while (list 'not (car condition))
+	      (cons 'begin body)
 	      (cons 'begin (remove-if not
-				      (map (lambda (form) (if (cadr (cdr form))
-							      (list 'set! (car form) (cadr (cdr form)))))
-					   forms)))
-	      (cons 'begin body))
+			      (map (lambda (form)
+				     (if (cadr (cdr form))
+				 (list 'set! (car form) (cadr (cdr form)))))
+				   forms))))
 	(if (cadr condition)
 	    (cadr condition)
 	    #f)))
