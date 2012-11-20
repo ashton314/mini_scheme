@@ -155,8 +155,12 @@
 
 (define foo '(1 2 3))			; For testing purposes
 
+(define *backquote-simplify* #t)
+
 (defmacro (backquote x)
-  (bq-simplify (bq-process x 1)))
+  (if *backquote-simplify*
+      (bq-simplify (bq-process x 1))
+      (bq-process x 1)))
 
 (define (bq-process x depth)
   (cons 'append
