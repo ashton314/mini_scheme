@@ -66,7 +66,9 @@ REPL: {
 sub scheme_eval {
     my ($expr, $env) = @_;
     my $analyzed = scheme_analyze($expr);
+#    print STDERR "Done.\nEvaluating...";
     my $evaluated = $analyzed->($env);
+#    print STDERR "Done.\n";
     return $evaluated;
 }
 
@@ -79,7 +81,15 @@ sub scheme_analyze {
 	given ($$expr[0]) {
 	    when ('string') { return sub { new String($$expr[1]); }; }
 	    when ('quote') {
-		return sub { return $$expr[1]; };
+		given (ref $$expr[1]) {
+		    when ('ARRAY') {
+			my $cons = array_to_cons($$expr[1]);
+			return sub { $cons; };
+		    }
+		    default {
+			return sub { $$expr[1]; };
+		    }
+		}
 	    }
 	    when ('new-backquote') {
 		my @expr = @{ $expr };
@@ -158,10 +168,14 @@ sub scheme_analyze {
 		  qw(body args);
 		my @expr = @{ $expr };
 		shift @expr;
-		my @to_expand = @expr;
+		my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
+					: $_ } @expr;
 		my $arg_hash = bind_vars($macro_args, \@to_expand);
 		my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
-		my $to_analyze = $expanded;
+#		print STDERR "Expansion: @{ [to_string($expanded)] }\n";
+		my $to_analyze =
+		  ref $expanded eq 'Cons' ? cons_to_array($expanded)
+		                          : $expanded;
 		my $proc = scheme_analyze($to_analyze, $analyze_env);
 		return sub {
 		    my $env = shift;
@@ -234,7 +248,7 @@ my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 			    args        => $params,
 			    lambda_expr => \@expression,
 			    body        => $body,
-			    name        => '#<LAMBDA $body>',
+			    name        => '__ANNON__',
 			   };
 		};
 	    }
@@ -303,7 +317,6 @@ my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 }
 
 sub compile_var_lookup {
-    # Lexical Addressing. This is a _major_ speed boost.
     my ($var, $env) = @_;
     my $frames = 0;
     while (defined $env) {
@@ -318,8 +331,7 @@ sub compile_var_lookup {
 	for (1..$frames) {
 	    $enviro = $$enviro{parent_env};
 	}
-	my $val = $$enviro{env}->{$var};
-	return $val;
+	return $$enviro{env}->{$var};
     };
 }
 
@@ -378,21 +390,20 @@ sub make_iso_hash {
 }
 
 sub to_string {
-    my $obj = $_[0];
+    my $obj = shift;
     my $ret = '';
 
     given (ref $obj) {
 	when ('Cons') {
-	    $ret = '#' . $obj->to_string(\&to_string);
+	    $ret = $obj->to_string(\&to_string);
 	}
 	when ('String') {
 	    $ret = "\"$obj->{string}\"";
 	}
 	when ('ARRAY') {
-	    my @to_print = @{ $obj };
-	    $ret .= '(';
-	    $ret .= shift @to_print;
-	    map { $ret .= ' ' . to_string($_) } @to_print;
+	    $ret .= '#(';
+	    $ret .= shift @{ $obj };
+	    map { $ret .= ' ' . to_string($_) } @{ $obj };
 	    $ret .= ')';
 	}
 	when ('HASH') {
@@ -410,6 +421,8 @@ sub to_string {
     return $ret;
 }
 
+## hopefully a faster version of bind_vars
+
 sub bind_vars {
     my ($syms, $vals) = @_;
     my %new_env = ();
@@ -418,7 +431,7 @@ sub bind_vars {
 	if ($$syms[$i] eq '.') { # slupry
 	    my @rest = @$vals;
 	    @rest = @rest[$i..$#rest];
-	    $new_env{$$syms[$i+1]} = \@rest;
+	    $new_env{$$syms[$i+1]} = array_to_cons(\@rest);
 	    last;
 	}
 	else {
@@ -427,6 +440,32 @@ sub bind_vars {
     }
     return \%new_env;
 }
+
+
+## old, slow, but working version
+
+# sub bind_vars {
+#     my ($sym_ref, $val_ref) = @_;
+#     my @syms = @{ $sym_ref };
+#     my @vals = @{ $val_ref };
+#     my %env = ();
+#     my $slurpy = 0;
+#     for my $sym (@syms) {
+# 	if ($slurpy) {
+# 	    $env{$sym} = array_to_cons(\@vals);
+# 	    last;
+# 	}
+# 	elsif ($sym eq '.') {
+# 	    $slurpy = 1;
+# 	    next;
+# 	}
+# 	else {
+# 	    $env{$sym} = shift @vals;
+# 	}
+#     }
+#     return \%env;
+# }
+
 
 sub merge_envs {
     my ($parent, $new) = @_;
@@ -438,6 +477,7 @@ sub merge_envs {
 sub find_var {
     my ($var, $env) = @_;
     my $this_env = $$env{env};
+#    print STDERR "Var: @{ [caller] }\n" unless defined($var);
     if (exists $$this_env{$var}) {
 	return $$this_env{$var};
     }
@@ -574,7 +614,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @things = @{ find_var('things', $env) };
+		    my @things = @{cons_to_array(find_var('things', $env), 0)};
 		    error("Got @{ [scalar @things] } args and expected at least 2 -- eq?\n") if scalar @things < 2;
 		    my $thing = shift @things;
 		    foreach (@things) {
@@ -606,7 +646,6 @@ sub Special_forms {
 			return $$cons[0];
 		    }
 		    elsif (ref $cons eq 'Cons') {
-			print STDERR "Got a Cons -- car\n";
 			return $cons->{car};
 		    }
 		    elsif ($cons eq 'nil') {
@@ -632,7 +671,6 @@ sub Special_forms {
 			return \@list2;
 		    }
 		    elsif (ref $cons eq 'Cons') {
-			print STDERR "Got a Cons -- car\n";
 			return $cons->cdr;
 		    }
 		    else {
@@ -649,7 +687,9 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('obj', $env);
-		    return $$obj[-1];
+		    error("$obj is not a Cons - last\n")
+		      unless ref $obj eq 'Cons';
+		    return $obj->{last};
 		},
 		      },
 	    rplaca => {
@@ -659,7 +699,10 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('obj', $env);
-		    $$cons[0] = find_var('new-car', $env);
+		    unless (ref $cons eq 'Cons') {
+			error("$cons is not a Cons - rplaca\n");
+		    }
+		    $cons->{car} = find_var('new-car', $env);
 		    return $cons;
 		},
 		      },
@@ -670,8 +713,10 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('obj', $env);
-		    # FIXME: How on earth do I do this??
-		    @$cons[1..-1] = find_var('new-cdr', $env);
+		    unless (ref $cons eq 'Cons') {
+			error("$cons is not a Cons - rplacd\n");
+		    }
+		    $cons->{cdr} = find_var('new-cdr', $env);
 		    return $cons;
 		},
 		      },
@@ -683,18 +728,9 @@ sub Special_forms {
 		    my $env = shift;
 		    my ($arg1, $arg2) = 
 			map { find_var($_, $env) } qw(arg1 arg2);
-		    if (ref $arg2 eq 'ARRAY') {
-			return [$arg1, @$arg2];
-		    }
-		    else {
-			if ($arg2 eq 'nil') {
-			    return [$arg1];
-			}
-			else {
-			    # FIXME: How do I implement dotted notation?
-			    return [$arg1, $arg2];
-			}
-		    }
+		    $arg1 = array_to_cons($arg1) if ref $arg1 eq 'ARRAY';
+		    $arg2 = array_to_cons($arg2) if ref $arg2 eq 'ARRAY';
+		    return cons($arg1, $arg2);
 		},
 	    },
 	    list => {
@@ -740,6 +776,8 @@ sub Special_forms {
 		    my $func = find_var('function', $env);
 		    my $args = find_var('args', $env);
 
+		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
+
 		    my $bound = bind_vars($$func{args}, $args);
 		    my $nenv = merge_envs($$func{closure_env}, $bound);
 
@@ -756,9 +794,6 @@ sub Special_forms {
 		    if (ref $cons eq 'Cons') {
 			return $cons->null ? '#t' : '#f';
 		    }
-		    elsif (ref $cons eq 'ARRAY') {
-			return scalar @$cons == 0 ? '#t' : '#f';
-		    }
 		    else {
 			return $cons eq 'nil' ? '#t' : '#f';
 		    }
@@ -770,7 +805,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
+		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    error("Got @{ [scalar @args] } args and expected at least 2 -- >\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -785,7 +820,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
+		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    error("Got @{ [scalar @args] } args and expected at least 2 -- <\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -800,7 +835,7 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
+		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    error("Got @{ [scalar @args] } args and expected at least 2 -- =\n") if scalar @args < 2;
 		    my $thing = shift @args;
 		    foreach (@args) {
@@ -817,7 +852,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $sum = 0;
-		    map { $sum += $_ } @$args;
+		    $args->mapcar(sub { $sum += $_[0]; });
 		    return $sum;
 		},
 	    },
@@ -827,10 +862,15 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
-		    my $sum = shift @args;
-		    scalar @args == 0 ? $sum *= -1 :
-		      map { $sum -= $_ } @args;
+		    my $args = find_var('args', $env);
+		    my $sum = $args->{car};
+		    $args = $args->{cdr};
+		    if (ref $args eq 'Cons') {
+			$args->mapcar(sub { $sum -= shift; });
+		    }
+		    else {
+			$sum *= -1;
+		    }
 		    return $sum;
 		},
 	    },
@@ -842,7 +882,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
 		    my $prod = 1;
-		    map { $prod *= $_ } @$args;
+		    $args->mapcar(sub { $prod *= $_[0]; });
 		    return $prod;
 		},
 	    },
@@ -852,9 +892,9 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
-		    my $quot = shift @args;
-		    map { $quot /= $_ } @args;
+		    my $args =find_var('args', $env);
+		    my $quot = $args->{car};
+		    $args->{cdr}->mapcar(sub { $quot /= $_[0]; });
 		    return $quot;
 		},
 	    },
@@ -864,9 +904,9 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @args = @{ find_var('args', $env) };
-		    my $rem = shift @args;
-		    map { $rem %= $_ } @args;
+		    my $args = find_var('args', $env);
+		    my $rem = $args->{car};
+		    $args->{cdr}->mapcar(sub { $rem %= $_[0]; });
 		    return $rem;
 		},
 	    },
@@ -891,7 +931,8 @@ sub Special_forms {
 			$thing = scheme_read($stream, "\n");
 			redo LOOP unless defined($thing);
 		    }
-		    return $thing;
+		    return ref $thing eq 'ARRAY' ? array_to_cons($thing)
+		                                 : $thing;
 		},
 		      },
             'time' => {
@@ -956,8 +997,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $objs = find_var('things', $env);
-		    map { print to_string($_) } @$objs;
-		    return undef;
+		    $objs->mapcar(sub { print to_string(+shift); });
 		},
 	    },
 	    'write-string' => {
@@ -967,10 +1007,9 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map {
-			print ref $_ eq 'String' ? $_->{string}
-			  : to_string($_) } @$obj;
-		    return undef;
+		    $obj->mapcar(sub {
+				     my $thing = shift;
+				     print (ref $thing eq 'String' ? $thing->{string} : to_string($thing)); });
 		},
 	    },
 	    'write-string-err' => {
@@ -980,10 +1019,9 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map {
-			print STDERR (ref $_ eq 'String' ?
-				      $_->{string} : to_string($_)) } @$obj;
-		    return undef;
+		    $obj->mapcar(sub {
+				     my $thing = shift;
+				     print STDERR (ref $thing eq 'String' ? $thing->{string} : to_string($thing)); });
 		},
 	    },
 	    'error' => {
@@ -1003,8 +1041,7 @@ sub Special_forms {
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
-		    map { print STDERR to_string($_) } @$obj;
-		    return undef;
+		    $obj->mapcar(sub { print STDERR to_string(+shift); });
 		},
 	    },
 	    'sleep' => {
@@ -1043,7 +1080,7 @@ sub Special_forms {
 		    body => sub {
 			my $env = shift;
 			my $func = find_var('func', $env);
-			print to_string($func->{lambda_expr});
+			print to_string(array_to_cons($func->{lambda_expr}));
 			return undef;
 		    },
 		   },
@@ -1054,14 +1091,15 @@ sub Special_forms {
 			    body => sub {
 				my $env = shift;
 				my $form = find_var('form', $env);
-				my $form_ref = $form;
+				my $form_ref = cons_to_array($form);
 if (exists $MACROS{$$form_ref[0]}) { 
     my %macro = %{ $MACROS{$$form_ref[0]} };
     my ($macro_body, $macro_args) = map { $macro{$_} }
       qw(body args);
     my @expr = @{ $form_ref };
     shift @expr;
-    my @to_expand = @expr;
+    my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
+			    : $_ } @expr;
     my $arg_hash = bind_vars($macro_args, \@to_expand);
     return $macro_body->(\%GLOBAL_ENV, $arg_hash);
 }
