@@ -1,38 +1,43 @@
+;; Scheme basics
+(load "cert/special_forms.scm")
+(load "cert/functions.scm")
+(load "cert/macros.scm")
+
 (load "cert/timer.scm")
 (load "cert/closure.scm")
 (load "cert/loop.scm")
 
+(define (full-tests)
+  (write-string-err "--- CONTROL TESTS: BEGIN ---")
+  (terpri-err)
+  (if (control-tests)
+      (begin
+	(write-string-err "--- CONTROL TESTS: PASS ---")
+	(write-string-err "--- TIME TRIALS: BEGIN ---")
+	(time-tests)
+	(write-string-err "--- TIME TRIALS: FINISH ---")
+	#t)
+      (begin
+	(write-string-err "--- CONTROL TESTS: FAIL ---")
+	(write-string-err "--- TIME TRIALS: ABORT ---")
+	#f)))
+
 (define (time-tests)
+  (write-string-err "--- CLOSURE TIME TRIAL: BEGIN ---")
   (time-trial 1000
 	      (closure-tests))
+  (write-string-err "--- CLOSURE TIME TRIAL: FINISH ---")
+  (terpri-err)
+  (write-string-err "--- LOOP TIME TRIAL: BEGIN ---")
   (time-trial 1000
 	      (loop-tests))
-  (time-trial 1000
-	      (control-tests)))
+  (write-string-err "--- LOOP TIME TRIAL: FINISH ---"))
 
 (define (control-tests)
   (and
    (syntax-tests)
    (function-tests)
    (macro-tests)))
-
-(define (function-tests)
-  (and
-   (recursion-tests)))
-
-(define (recursion-tests)
-  (define (! n)
-    (if (= n 1)
-	1
-	(* n (! (- n 1)))))
-  (= (! 5) 120))
-
-(define (syntax-tests)
-  (and 
-   (if (= 1 1)
-       #t
-       (/ 0 0))
-   (or #f #t (/ 0 0))))
 
 (define (extract sym struct)
   (define (doit cont strc)
