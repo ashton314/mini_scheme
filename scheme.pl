@@ -838,7 +838,11 @@ sub Special_forms {
 		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
 		    error("Got @{ [scalar @args] } args and expected at least 2 -- =\n") if scalar @args < 2;
 		    my $thing = shift @args;
+	error("@{ [to_string($thing)] } is not numeric in comparison! -- =")
+	  if ref $thing;
 		    foreach (@args) {
+	error("@{ [to_string($_)] } is not numeric in comparison! -- =")
+	  if ref $_;
 			return '#f' if $_ != $thing;
 		    }
 		    return '#t';

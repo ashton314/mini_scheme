@@ -1,17 +1,3 @@
-This works fine:
-
-(define zoop (gensym))
-(define narf (+ zoop 0))
-
-(eq? narf zoop)
-
-But this:
-
-(= narf zoop)
-
-returns #t. This should be a fairly easy fix with the `=' operator.
-
-
 The block below lists some bugs present in branch "array". These bugs
 have been elimiated by reverting back to Cons objects. The program
 will slow down again, and I'm keeping it this way, until I can find a
