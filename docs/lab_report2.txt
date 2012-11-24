@@ -19,12 +19,13 @@ observed.
 
 * Materials
 
-** 1 computer, running FreeBSD v8.2
-** MIT Scheme v9.0.1
-** CMU Common Lisp 19F
-** Perl v5.14.1
-** GNU Emacs v23.2.1
-** Git v1.7.9.6
+Materials used in this experiment:
+ - 1 computer, running FreeBSD v8.2
+ - MIT Scheme v9.0.1
+ - CMU Common Lisp 19F
+ - Perl v5.14.1
+ - GNU Emacs v23.2.1
+ - Git v1.7.9.6
 
 * Methods
 
@@ -53,13 +54,13 @@ time required to execute each block ten thousand times was recorded.
 The "traditional" method of interpretation works as follows: The
 interpreter receives a Scheme expression. This expression is passed to
 the function EVAL along with an environment that the expression is to
-be evaluated within. (The environment defaults to a null value.) If the
-expression fits into the category of special forms, (atomic, primitive
-forms that receive special treatment from the evaluator; all other
-functions can be built using these forms) EVAL will dispatch on the
-type of form. If the expression is a function call, the function APPLY
-is called with the evaluated function and evaluated arguments passed
-to it.
+be evaluated within. (The environment defaults to a null value.) If
+the expression fits into the category of special forms, (atomic,
+primitive forms that receive special treatment from the evaluator; all
+other functions can be built using these forms) EVAL will dispatch on
+the type of form. If the expression is a function call, the function
+APPLY is called with the evaluated function and evaluated arguments
+passed to it.
 
 The syntactic analyzation method of interpretation is implemented by
 the following procedure: Every time a new Scheme expression is
@@ -74,26 +75,111 @@ environment.
 ** Differences
 
 The two evaluators written for this project had a few differences from
-the MIT Scheme evaluator. Most of the differences were things snarfed
+the MIT Scheme evaluator. Many of the differences were things snarfed
 from CMU Common Lisp
 
-Differences with both interpreters:
+Differences between both interpreters and MIT Scheme:
  - The function `call-with-current-continuation' was not implemented.
  - The symbol `nil' was a self-evaluating form. *
  - The special form `defmacro' was used for syntactic extensions. *
  - The symbol `string' was a special form, just for the sake of
    implementation.
  - Tail-call optimizations were not performed.
+ - Scheme's numeric tower was ignored; all number types inherit
+   directly from Perl.
+ - No semblance of a debugger.
 
- * Simmilar to or snarfed from CMU Common Lisp
+Differences between the "traditional" interpreter and MIT Scheme:
+ - Macros were expanded every time the macro was called.
 
+Differences between the syntactic analyzing interpreter and MIT Scheme:
+
+## WORK HERE
+
+Differences between the two interpreters:
+ - Macros in the traditional interpreter were expanded multiple
+   times. Macros in the syntactic analyzer were expanded at analyze
+   time.
+
+ * Similar to or snarfed from CMU Common Lisp
 
 ** Optimizations
 
-Several optimization opportunites presented themselves in the
-syntactic analyzer. The optimizations are listed below:
+Because analyzation of scheme code is effectively compilation, several
+optimization opportunities presented themselves. This section outlines
+a few of the optimizations that were made with the syntactic analyzer.
 
-- Lexical Addressing (compilation of variable lookups)
+*** Macro Expansion
+
+"When a file of Lisp is compiled, a parser reads the source code and
+sends its output to the compiler... With macros, we can manipulate the
+program while it's in this intermediate form..." (On Lisp)
+
+The syntactic analyzer could be considered a sort of compiler; it
+transforms a program written in one language (Scheme) into
+another. (Perl) The analyzation phase of execution is analogous to
+compile time in standard lisp terminology.
+
+In most Lisps, macros operate during compile time. (For a full
+description of what macros are and how they work, see "On Lisp".) In
+the syntactic analyzer implementation, macros are expanded as the code
+is being analyzed. This expansion happens once. Paul Graham describes
+in "On Lisp" techniques for using this fact to optimize Lisp programs.
+
+In the "traditional" interpreter, macros were expanded every time a
+call to one was made. In a setting such as a loop, where the same code
+is evaluated multiple times, this became expensive.
+
+*** Lexical Addressing
+
+Environments were implemented in the following manner: each
+environment was a hash, consisting of the current lexical scope, and a
+reference to the parent environment. Code:
+
+  $environment = {
+      parent_env => \$parent_environment,
+      env        => {
+  		     foo => 42,
+  		     bar => "This is a string",
+  		     baz => 19,
+  		  },
+  };
+
+There are two ways outlined in SICP to lookup a given variable's value
+in the current environment. The first method is called "deep
+binding". The second is known as "lexical addressing".
+
+In the deep binding method, a lookup routine is called with the
+variable to lookup and the environment to look in. The "env" is
+searched for the given variable. If it is not found, the lookup
+routine is called recursively with the same variable and "parent_env"
+as its arguments. If "parent_env" is undefined, then the routine
+throws an error.
+
+In the lexical addressing method, variable lookups are
+compiled. During analyze/compile time, an environment is maintained
+that has the same structure that the runtime environment will
+acquire. No values are set, but variables are in the correct positions
+in this compile-time environment.
+
+When a variable is analyzed, the variable lookup is compiled. The
+compiling routine takes the variable to locate, and the compile-time
+environment. The routine searches for the variable in the same manner
+that deep binding does, and notes how many times it must recur on
+"parent_env". Once the variable is located, it returns a closure that,
+when called with the runtime environment, will ascend the number of
+frames noted by the compiling routine, and lookup the variable in that
+environment.
+
+Lexical addressing avoids having to search through every environment
+during runtime. It pushes this work into compile time, where it only
+must happen once. This produced an enormous speed increase.
+
+Lexical addressing is impossible with the "traditional" evaluator for
+roughly the same reasons as macro expansion optimizations. There is no
+compile-time with the "traditional" evaluator. There are only
+read-time and runtime. With the syntactic analyzer, there is a
+distinct compile-time in which these optimizations can take place.
 
 * Data
 
@@ -103,4 +189,8 @@ syntactic analyzer. The optimizations are listed below:
 
 * References
 
-"SICP". Abelson, Sussman, Sussman, Perlis. I<Structure and Interpretation of Computer Programs>. McGraw-Hill Book Company, 1996. Texinfo format.
+"SICP". Abelson, Sussman, Sussman, Perlis. I<Structure and
+Interpretation of Computer Programs>. McGraw-Hill Book Company,
+1996. Texinfo format.
+
+"On Lisp". Graham, Paul. I<On Lisp>. PDF.

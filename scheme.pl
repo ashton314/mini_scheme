@@ -26,8 +26,6 @@ my %GLOBAL_ENV       = Special_forms();
 my $CALLS_TO_ANALYZE = 0;
 my $ANALYZE_VERBOSE  = 0;
 
-$| = 1;
-
 my $init_fh;
 if (open $init_fh, '<', 'init.scm') {
     print STDERR "Loading init file...";
@@ -107,15 +105,16 @@ sub scheme_analyze {
 		return
 		  sub {
 		    return set_var($var, $_[0], $val->($_[0]));
-		}; }
+		};
+	    }
 	    when ('define') {
 		my @expr = @{ $expr };
 		my @expression = @{ $expr };
 		shift @expression; # Knock off that 'define'
 
 		if (ref $expr[1] eq 'ARRAY') { # Function def
-		    my @arglist    = @{ shift @expression };
-		    my @body       = @expression;
+		    my @arglist = @{ shift @expression };
+		    my @body    = @expression;
 		    $$analyze_env{env}->{$expr[1][0]} = 1;
 		    my $to_call =
 		      scheme_analyze(['set!', (shift @arglist),
