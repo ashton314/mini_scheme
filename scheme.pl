@@ -12,7 +12,6 @@ use v5.10;
 use Time::HiRes qw(gettimeofday);
 use Data::Dumper;
 
-use Symbol;
 use Reader;
 use Cons;
 use String;

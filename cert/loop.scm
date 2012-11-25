@@ -2,7 +2,7 @@
 
 (define (loopy-factorial n)
   (let ((acc 1))
-    (dotimes (i (- n 1))
+    (dotimes (i n)
 	     (set! acc (* acc (+ i 1))))
     acc))
 
