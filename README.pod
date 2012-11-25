@@ -66,7 +66,7 @@ The following features are adapted from CMU Common Lisp:
 
 =item *
 
-NIL exists and is used.
+NIL is a symbol.
 
 =item *
 
@@ -78,11 +78,19 @@ DEFMACRO is a special form.
 
 No tail-call optimizations.
 
+=item *
+
+Next to no type checking.
+
+=item *
+
+Next to no error checking.
+
 =back
 
 =head1 FEATURES TO ADD
 
-When I get around to it, I'll add these things in:
+When I get around to it, I'll try to add these things in:
 
 =over 4
 

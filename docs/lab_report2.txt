@@ -93,8 +93,9 @@ Differences between the "traditional" interpreter and MIT Scheme:
  - Macros were expanded every time the macro was called.
 
 Differences between the syntactic analyzing interpreter and MIT Scheme:
-
-## WORK HERE
+ All differences between MIT Scheme and this interpreter are outlined
+ in the "Differences between both interpreters and MIT Scheme"
+ section.
 
 Differences between the two interpreters:
  - Macros in the traditional interpreter were expanded multiple
@@ -134,7 +135,7 @@ is evaluated multiple times, this became expensive.
 
 Environments were implemented in the following manner: each
 environment was a hash, consisting of the current lexical scope, and a
-reference to the parent environment. Code:
+reference to the parent environment. Example:
 
   $environment = {
       parent_env => \$parent_environment,

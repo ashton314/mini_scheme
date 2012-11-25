@@ -3,7 +3,10 @@ use strict;
 use warnings;
 no warnings qw(recursion);
 
-BEGIN { print STDERR "Loading modules....."; }
+BEGIN {
+    push @INC, 'mods/';
+    print STDERR "Loading modules.....";
+}
 
 use v5.10;
 use Time::HiRes qw(gettimeofday);
