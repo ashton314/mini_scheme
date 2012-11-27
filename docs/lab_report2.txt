@@ -81,7 +81,6 @@ from CMU Common Lisp
 Differences between both interpreters and MIT Scheme:
  - The function `call-with-current-continuation' was not implemented.
  - The symbol `nil' was a self-evaluating form. *
- - The special form `defmacro' was used for syntactic extensions. *
  - The symbol `string' was a special form, just for the sake of
    implementation.
  - Tail-call optimizations were not performed.
