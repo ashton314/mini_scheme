@@ -1,1 +1,2 @@
-(define (macro-tests))
+(define (macro-tests)
+  #t)
