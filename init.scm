@@ -58,41 +58,41 @@
 
 ;;; Macros
 
-(defmacro (cond . forms)
+(define-syntax (cond . forms)
   (if (null forms)
       #f
       (list 'if (car (car forms))
 	   (cons 'begin (cdr (car forms)))
 	   (cons 'cond (cdr forms)))))
 
-(defmacro (incf thing . amount)	; Warning: multiple evaluation error
+(define-syntax (incf thing . amount)	; Warning: multiple evaluation error
   (list 'set! thing (list '+ thing (if (> (length amount) 0)
 				       (car amount) 1))))
 
-(defmacro (let forms . body)
+(define-syntax (let forms . body)
   (cons (list 'lambda (map car forms) (cons 'begin body))
 	(map cadr forms)))
 
-(defmacro (when test . body)
+(define-syntax (when test . body)
   (list 'if test (cons 'begin body)))
 
-(defmacro (unless test . body)
+(define-syntax (unless test . body)
   (list 'if (list 'not test) (cons 'begin body)))
 
-(defmacro (and . rest)
+(define-syntax (and . rest)
   (define (expander lst)
     (if (null lst)
 	#t
 	(list 'if (car lst) (expander (cdr lst)))))
   (expander rest))	
 
-(defmacro (dolist form . body)
+(define-syntax (dolist form . body)
   (list 'begin
 	(list 'map (list 'lambda (list (car form)) (cons 'begin body))
 	      (cadr form))
 	#f))
 
-(defmacro (push what where)
+(define-syntax (push what where)
   (list 'set! where (list 'cons what where)))
 
 ;; ;;; Non-bootstrapping functions
@@ -109,7 +109,7 @@
 (define (remove-if-not func lst)
   (remove-if (lambda (n) (not (func n))) lst))
 
-(defmacro (do forms condition . body)	; I needed that remove-if function
+(define-syntax (do forms condition . body)	; I needed that remove-if function
   (list 'let (map (lambda (form) (list (car form) (cadr form))) forms)
 	(list 'while (list 'not (car condition))
 	      (cons 'begin body)
@@ -157,7 +157,7 @@
 
 (define *backquote-simplify* #t)
 
-(defmacro (backquote x)
+(define-syntax (backquote x)
   (if *backquote-simplify*
       (bq-simplify (bq-process x 1))
       (bq-process x 1)))
@@ -227,7 +227,7 @@
 
 ;;; Bootstrap++
 
-(defmacro (or . rest)
+(define-syntax (or . rest)
   (define (expander lst)
     (if (null lst)
 	#f
@@ -235,12 +235,12 @@
 	  `(let ((,sym ,(car lst))) (if ,sym ,sym ,(expander (cdr lst)))))))
   (expander rest))
 
-(defmacro (dotimes args . body)
+(define-syntax (dotimes args . body)
   `(do ((,(car args) 0 (+ ,(car args) 1)))
        ((= ,(cadr args) ,(car args)) nil)
      ,@body))
 
-(defmacro (aif test tcl . fcl)
+(define-syntax (aif test tcl . fcl)
   `(let ((_ ,test))
      (if _
 	 ,tcl
@@ -252,7 +252,7 @@
     (cdr (lambda (thing value)
 	   (rplacd thing value)))))
 
-(defmacro (setf place value)
+(define-syntax (setf place value)
   (if (list? place)
       (aif (find-if (lambda (n) (eq? (car n) (car place))) *setf-functions*)
 	   `(,(cadr _) ,@(cdr place) ,value)

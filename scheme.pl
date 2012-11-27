@@ -141,9 +141,9 @@ sub scheme_analyze {
 		    };
 		}
 	    }
-	    when ('defmacro') {
+	    when ('define-syntax') {
 		my @expr = @{ $expr };
-		shift @expr; 	# Knock off that 'defmacro'
+		shift @expr; 	# Knock off that 'define-syntax'
 
 		my @arg_list = @{ shift @expr };
 		my $macro = shift @arg_list;

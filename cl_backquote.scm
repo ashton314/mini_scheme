@@ -1,6 +1,6 @@
 (define *bq-simplify* #f)
 
-(defmacro (backquote x)
+(define-syntax (backquote x)
   (bq-completely-process x))
 
 (define (bq-completely-process x)
