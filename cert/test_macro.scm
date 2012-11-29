@@ -1,4 +1,4 @@
-(define-syntax (test . forms)
+(define-macro (test . forms)
   `(and 
     ,@(map (lambda (form)
 	     `(if ,(car form)

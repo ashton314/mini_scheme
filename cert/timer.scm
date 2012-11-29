@@ -1,4 +1,4 @@
-(define-syntax (timer times . body)
+(define-macro (timer times . body)
   ;; Returns: analyzation and single execution time,
   ;;          total time,
   ;;          net time
@@ -29,7 +29,7 @@
 	       (/ (- ,total-time (- ,first-time ,start-time))
 		  ,times))))))
 
-(define-syntax (time-trial itr-times . body)
+(define-macro (time-trial itr-times . body)
   (let ((times (gensym)))
     `(let ((,times (timer ,itr-times ,@body)))
        (write-ln "ANALYZATION AND ONE EXECUTION: " (car ,times))

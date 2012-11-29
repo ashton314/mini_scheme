@@ -10,6 +10,7 @@
 (define (if-tests)
   (and
    ;; Conditional evaluation
+   (if (= 1 0) (/ 1 0) #t)
    (if (= 1 1) #t (/ 1 0))))
 
 (define (define-tests)

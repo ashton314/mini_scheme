@@ -141,9 +141,9 @@ sub scheme_analyze {
 		    };
 		}
 	    }
-	    when ('define-syntax') {
+	    when ('define-macro') {
 		my @expr = @{ $expr };
-		shift @expr; 	# Knock off that 'define-syntax'
+		shift @expr; 	# Knock off that 'define-macro'
 
 		my @arg_list = @{ shift @expr };
 		my $macro = shift @arg_list;
@@ -608,7 +608,6 @@ sub Special_forms {
 	    '#t' => '#t',
 	    '#f' => '#f',
 	    nil  => 'nil',
-            t    => 't',
 	    'eq?' => {
 		closure_env => {},
 		args        => ['.', 'things'],
@@ -1097,47 +1096,19 @@ sub Special_forms {
 				my $env = shift;
 				my $form = find_var('form', $env);
 				my $form_ref = cons_to_array($form);
-if (exists $MACROS{$$form_ref[0]}) { 
-    my %macro = %{ $MACROS{$$form_ref[0]} };
-    my ($macro_body, $macro_args) = map { $macro{$_} }
-      qw(body args);
-    my @expr = @{ $form_ref };
-    shift @expr;
-    my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
-			    : $_ } @expr;
-    my $arg_hash = bind_vars($macro_args, \@to_expand);
-    return $macro_body->(\%GLOBAL_ENV, $arg_hash);
-}
+				if (exists $MACROS{$$form_ref[0]}) { 
+				    my %macro = %{ $MACROS{$$form_ref[0]} };
+				    my ($macro_body, $macro_args) = map { $macro{$_} }
+				      qw(body args);
+				    my @expr = @{ $form_ref };
+				    shift @expr;
+				    my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
+							    : $_ } @expr;
+				    my $arg_hash = bind_vars($macro_args, \@to_expand);
+				    return $macro_body->(\%GLOBAL_ENV, $arg_hash);
+				}
 			    },
 			   },
-	    # dumper => {
-	    # 	closure_env => {},
-	    # 	args        => ['thing'],
-	    # 	lambda_expr => undef,
-	    # 	body => sub {
-	    # 	    my $env = shift;
-	    # 	    my $obj = find_var('thing', $env);
-	    # 	    print STDERR Dumper($obj) . "\n";
-	    # 	    return undef;
-	    # 	},
-	    # },
-	    # closure_env => {
-	    # 	closure_env => {},
-	    # 	args        => ['symbol'],
-	    # 	lambda_expr => undef,
-	    # 	body => sub {
-	    # 	    my $env = shift;
-	    # 	    my $obj = find_var('symbol', $env);
-	    # 	    if (ref $obj eq 'HASH') {
-	    # 		print Dumper($$obj{closure_env}) . "\n";
-	    # 		return undef;
-	    # 	    }
-	    # 	    else {
-	    # 		print "Not a function.\n";
-	    # 		return undef;
-	    # 	    }
-	    # 	},
-	    # },
 	    gensym => {
 		       closure_env => {},
 		       args        => [],
@@ -1158,16 +1129,6 @@ if (exists $MACROS{$$form_ref[0]}) {
 		    return \@syms;
 		},
 	    },
-	    # env_dump => {
-	    # 	closure_env => {},
-	    # 	args        => [],
-	    # 	lambda_expr => [],
-	    # 	body => sub {
-	    # 	    my $env = shift;
-	    # 	    print Dumper( $env );
-	    # 	    return undef;
-	    # 	},
-	    # },
 	    verbose => {
 		closure_env => {},
 		args        => ['symbol'],

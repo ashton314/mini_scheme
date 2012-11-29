@@ -63,6 +63,6 @@
 
 ;; (extract 'foo '((narf (foo zoop)) (quad nil) (foo 42)))
 
-(define-syntax (with-gensyms syms . body)
+(define-macro (with-gensyms syms . body)
   `(let (,@(map (lambda (n) (list n '(gensym)))))
      ,@body))
