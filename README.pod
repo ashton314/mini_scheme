@@ -68,10 +68,6 @@ The following features are adapted from CMU Common Lisp:
 
 NIL is a symbol.
 
-=item *
-
-DEFMACRO is a special form.
-
 =back
 
 =item *
@@ -97,6 +93,10 @@ When I get around to it, I'll try to add these things in:
 =item *
 
 A debugger. B<BIG> maybe.
+
+=item *
+
+CALL-WITH-CURRENT-CONTINUATION. I'll have to use Guy Steele's "LAMBDA: The Ultimate Declarative" a lot if I want to do this.
 
 =back
 
