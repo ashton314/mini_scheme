@@ -132,9 +132,18 @@ sub scheme_analyze {
 		}
 		else {		# Var def
 		    $$analyze_env{env}->{$expr[1]} = 1;
-		    my $to_call = scheme_analyze(['set!', (shift @expression),
-						  (shift @expression)],
-						 $analyze_env);
+		    my $to_call;
+
+		    unless ($expression[1]) {
+			$to_call = scheme_analyze(['set!', (shift @expression),
+						   'undef'], $analyze_env);
+		    }
+		    else {
+			$to_call = scheme_analyze(['set!', (shift @expression),
+						   (shift @expression)],
+						  $analyze_env);
+		    }
+
 		    return sub {
 			$_[0]->{env}{$expr[1]} = '';
 			$to_call->($_[0]);
@@ -608,22 +617,23 @@ sub Special_forms {
 	    '#t' => '#t',
 	    '#f' => '#f',
 	    nil  => 'nil',
+	    'undef' => undef,
 	    'eq?' => {
 		closure_env => {},
 		args        => ['.', 'things'],
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my @things = @{cons_to_array(find_var('things', $env), 0)};
-		    error("Got @{ [scalar @things] } args and expected at least 2 -- eq?\n") if scalar @things < 2;
-		    my $thing = shift @things;
-		    foreach (@things) {
-			if (ref $thing ne ref $_ or
-			    "$thing" ne "$_") {
-			    return '#f';
-			}
-		    }
-		    return '#t';
+		    my $args = find_var('things', $env);
+		    my $thing = $args->{car};
+		    my $eq = 1;
+		    $args->{cdr}->mapcar(sub {
+					     my $i = shift;
+					     if (ref $i ne ref $thing or
+						 "$i" ne "$thing") {
+						 $eq = 0;
+					     } });
+		    return $eq ? '#t' : '#f';
 		},
 		     },
 	    quit => {

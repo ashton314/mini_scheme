@@ -243,6 +243,7 @@
 	 ,tcl
 	 ,(or (and (list? fcl) (cadr fcl)) #f))))
 
+;; SETF
 (define *setf-functions*
   '((car (lambda (thing value)
 	   (rplaca thing value)))

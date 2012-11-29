@@ -1,4 +1,6 @@
 ;; Scheme basics
+(load "cert/test_macro.scm")
+
 (load "cert/syntax.scm")
 (load "cert/functions.scm")
 (load "cert/data_structures.scm")
