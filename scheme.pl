@@ -784,10 +784,10 @@ sub Special_forms {
 		    return $$func{body}->($nenv);
 		},
 	    },
-	    null => {
+	    'null?' => {
 		closure_env => {},
 		args        => ['cons-cell'],
-		lambda_expr => 'null',
+		lambda_expr => 'null?',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('cons-cell', $env);

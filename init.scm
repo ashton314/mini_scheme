@@ -3,9 +3,6 @@
 (define (atom x)
   (not (list? x)))
 
-(define (cons? x)
-  (list? x))
-
 (define (odd? n)
   (= (mod n 2) 1))
 
@@ -21,12 +18,12 @@
   (car (cdr lst)))
 
 (define (length lst)
-  (if (null lst)
+  (if (null? lst)
       0
       (+ (length (cdr lst)) 1)))
 
 (define (foreach func lst)
-  (if (null lst)
+  (if (null? lst)
       nil
       (cons (func (car lst)) (foreach func (cdr lst)))))
 
@@ -37,21 +34,21 @@
 			 (cdr (cdr lst))))))
 
 (define (find-if func lst)
-  (if (null lst)
+  (if (null? lst)
       #f
       (if (func (car lst))
 	  (car lst)
 	  (find-if func (cdr lst)))))
 
 (define (map func . lsts)
-  (if (find-if null lsts)
+  (if (find-if null? lsts)
       nil
       (cons (apply func (foreach car lsts))
 	    (apply map (cons func (foreach cdr lsts))))))
 
 (define (reverse lst)
   (define (rev lst acc)
-    (if (null lst)
+    (if (null? lst)
 	acc
 	(rev (cdr lst) (cons (car lst) acc))))
   (rev lst nil))
@@ -59,7 +56,7 @@
 ;;; Macros
 
 (define-macro (cond . forms)
-  (if (null forms)
+  (if (null? forms)
       #f
       (list 'if (car (car forms))
 	   (cons 'begin (cdr (car forms)))
@@ -81,7 +78,7 @@
 
 (define-macro (and . rest)
   (define (expander lst)
-    (if (null lst)
+    (if (null? lst)
 	#t
 	(list 'if (car lst) (expander (cdr lst)))))
   (expander rest))	
@@ -170,7 +167,7 @@
 (define (bq-loop x depth)
   (define (count-comma lst acc)
     (if (and (list? lst)
-	     (not (null lst))
+	     (not (null? lst))
 	     (eq? (car lst) 'comma))
 	(count-comma (cadr lst) (+ acc 1))
 	acc))
@@ -201,7 +198,7 @@
 	    (append-acc nil))
 	(map (lambda (n)
 	       (if (eq? (car n) 'no-append)
-		   (if (not (null append-acc))
+		   (if (not (null? append-acc))
 		       (begin
 			 (push (cons 'list (apply append (reverse append-acc)))
 			       acc)
@@ -217,7 +214,7 @@
 			       (list 'no-append n)))
 			 (cdr lst))))
 	       pre-process))
-	(if (not (null append-acc))
+	(if (not (null? append-acc))
 	    (push (cons 'list (apply append (reverse append-acc)))
 		  acc))
 	(if (= (length acc) 1)
@@ -229,7 +226,7 @@
 
 (define-macro (or . rest)
   (define (expander lst)
-    (if (null lst)
+    (if (null? lst)
 	#f
 	(let ((sym (gensym)))
 	  `(let ((,sym ,(car lst))) (if ,sym ,sym ,(expander (cdr lst)))))))
