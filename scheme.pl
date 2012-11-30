@@ -955,7 +955,7 @@ sub Special_forms {
 		       closure_env => {},
 		       body => sub {
 			   my ($secs, $mili) = gettimeofday();
-			   return "$secs.$mili";
+			   return sprintf("%d.%06d", $secs, $mili);
 		       },
 		      },
 	    load => {
