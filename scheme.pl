@@ -620,11 +620,11 @@ sub Special_forms {
 	    'undef' => undef,
 	    'eq?' => {
 		closure_env => {},
-		args        => ['.', 'things'],
+		args        => ['.', 'args'],
 		lambda_expr => undef,
 		body => sub {
 		    my $env = shift;
-		    my $args = find_var('things', $env);
+		    my $args = find_var('args', $env);
 		    my $thing = $args->{car};
 		    my $eq = 1;
 		    $args->{cdr}->mapcar(sub {
