@@ -1,5 +1,3 @@
-(load "cert/test_macro.scm")
-
 (define (function-tests)
   (test
    ((single-recursion) "SINGLE RECURSION TESTS")

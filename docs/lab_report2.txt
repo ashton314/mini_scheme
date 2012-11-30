@@ -184,7 +184,38 @@ distinct compile-time in which these optimizations can take place.
 
 * Analysis/Results
 
+The syntactic analyzer program ran orders of magnitude faster than the
+"traditional" interpreter. Below are listed a few things that could
+have had effect on the speeds of the interpreters:
+ - Each interpreter was created by a different programmer. Differences
+   in programming styles could have influenced the speeds of the
+   interpreters.
+ - Algorithmic differences could have yielded performance
+   benefits/penalties.
+
+We attempted to minimize the effects of these issues by using the same
+Perl modules for Cons cells, strings, and the reader.
+
+Usage of a syntactic analyzer presents several opportunities for
+optimizations, which we took advantage of. Optimizations' benefits
+were noted during the testing of the syntactic analyzer. Most notably,
+the lexical addressing optimizations greatly enhanced execution time.
+
+It was noted that loading files ran significantly faster in the
+"traditional" interpreter than in the syntactic analyzer. For a
+one-time evaluation of a scheme expression, the "traditional"
+interpreter may be faster than the analyzer. However, with repeated
+lookups of a variable, function calls, and macro expansions, (which
+were the condition of the speed trials) the syntactic analyzer will be
+much faster.
+
 * Conclusion
+
+Syntactic analyzers produce significant speed benefits. Our hypothesis was
+supported by this experiment.
+
+This information can be used to help programmers write faster scheme
+interpreters.
 
 * References
 
