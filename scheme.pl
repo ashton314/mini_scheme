@@ -317,7 +317,7 @@ my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
 	    };
 	}
 	else {		# Variable
-	    return 
+	    return
 	      compile_var_lookup($expr, $analyze_env) //
 		sub {
 		    return find_var($expr, $_[0]);
