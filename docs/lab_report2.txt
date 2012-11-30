@@ -87,6 +87,8 @@ Differences between both interpreters and MIT Scheme:
  - Scheme's numeric tower was ignored; all number types inherit
    directly from Perl.
  - No semblance of a debugger.
+ - Several miscellaneous functions were not implemented.
+ - Several data types (e.g. streams, hash tables, etc.)
 
 Differences between the "traditional" interpreter and MIT Scheme:
  - Macros were expanded every time the macro was called.
@@ -100,8 +102,6 @@ Differences between the two interpreters:
  - Macros in the traditional interpreter were expanded multiple
    times. Macros in the syntactic analyzer were expanded at analyze
    time.
-
- * Similar to or snarfed from CMU Common Lisp
 
 ** Optimizations
 
