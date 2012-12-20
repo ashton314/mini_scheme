@@ -53,6 +53,13 @@
 	(rev (cdr lst) (cons (car lst) acc))))
   (rev lst nil))
 
+(define (member obj lst)
+  (if (null? lst)
+      #f
+      (if (eq? obj (car lst))
+	  lst
+	  (member obj (cdr lst)))))
+
 ;;; Macros
 
 (define-macro (cond . forms)
@@ -242,6 +249,17 @@
      (if _
 	 ,tcl
 	 ,(or (and (list? fcl) (cadr fcl)) #f))))
+
+(define-macro (case obj . clauses)
+  `(let ((_ ,obj))
+     (cond ,@(map (lambda (clause) `((eq? ,(car clause) _) (begin ,@(cdr clause)))) clauses))))
+
+(define-macro (labels forms . body)
+  `(let (,@(map (lambda (form) `(,(car form) nil)) forms))
+     (begin
+       ,@(map (lambda (form) `(set! ,(car form) ,(cadr form))) forms))
+     (begin
+       ,@body)))
 
 ;; SETF
 (define *setf-functions*

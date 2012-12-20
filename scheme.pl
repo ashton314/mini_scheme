@@ -49,7 +49,7 @@ REPL: {
 	$to_print = scheme_eval($expr, \%GLOBAL_ENV);
     };
     print STDERR "$@" if $@;
-    
+
     print "\n";
     if ($ANALYZE_VERBOSE) {
 	print "Calls to analyze: $CALLS_TO_ANALYZE\n";
@@ -71,7 +71,7 @@ sub scheme_analyze {
     my $expr = shift;
     my $analyze_env = shift // make_iso_env(\%GLOBAL_ENV);
     $CALLS_TO_ANALYZE++ if $ANALYZE_VERBOSE;
-    
+
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
 	    when ('string') { return sub { new String($$expr[1]); }; }
@@ -98,7 +98,7 @@ sub scheme_analyze {
 		my @expr = @{ $expr };
 		my @expression = @{ $expr };
 		shift @expression; # Knock off that 'define'
-		
+
 		if (ref $expr[1] eq 'ARRAY') { # Function def
 		    my @arglist = @{ shift @expression };
 		    my @body    = @expression;
@@ -118,7 +118,7 @@ sub scheme_analyze {
 		else {		# Var def
 		    $$analyze_env{env}->{$expr[1]} = 1;
 		    my $to_call;
-		    
+
 		    unless ($expression[1]) {
 			$to_call = scheme_analyze(['set!', (shift @expression),
 						   'undef'], $analyze_env);
@@ -128,7 +128,7 @@ sub scheme_analyze {
 						   (shift @expression)],
 						  $analyze_env);
 		    }
-		    
+
 		    return sub {
 			$_[0]->{env}{$expr[1]} = '';
 			$to_call->($_[0]);
@@ -138,14 +138,14 @@ sub scheme_analyze {
 	    when ('define-macro') {
 		my @expr = @{ $expr };
 		shift @expr; 	# Knock off that 'define-macro'
-		
+
 		my @arg_list = @{ shift @expr };
 		my $macro = shift @arg_list;
 		my %arg_hash = map { $_ => 1 } @arg_list;
 		$$analyze_env{env}->{$macro} = 1;
 		$analyze_env = merge_iso_envs(\%arg_hash, $analyze_env);
 		my $body = scheme_analyze(['begin', @expr], $analyze_env);
-		
+
 		$MACROS{$macro} = {
 				   body => sub {
 				       my ($env, $args) = @_;
@@ -154,7 +154,7 @@ sub scheme_analyze {
 				   },
 				   args => \@arg_list,
 				  };
-		
+
 		return sub { return $macro; };
 	    }
 	    when (exists $MACROS{$_}) { # Macro expander
@@ -179,7 +179,7 @@ sub scheme_analyze {
 	    when ('while') {
 		my @expr = @{ $expr };
 		shift @expr; 	# Knock off that 'while'
-		
+
 		my $cond = scheme_analyze(shift @expr, $analyze_env);
 		my $body = scheme_analyze(['begin', @expr], $analyze_env);
 		return sub {
@@ -190,7 +190,7 @@ sub scheme_analyze {
 		    }
 		    return $res;
 		};
-		
+
 	    }
 	    when ('if') {
 		my $pred = scheme_analyze($$expr[1], $analyze_env);
@@ -222,7 +222,9 @@ sub scheme_analyze {
 		    for my $expr (@exprs[0..($#exprs-1)]) {
 			$expr->($env);
 		    }
-		    return $exprs[$#exprs]->($env); # Deep recursion here
+		    return $exprs[$#exprs]->($env);
+		    # @_ = $env;
+		    # goto &{$exprs[$#exprs]};
 		};
 	    }
 	    when ('lambda') {
@@ -234,7 +236,7 @@ sub scheme_analyze {
 		    $analyze_env = merge_iso_envs(\%arg_hash, $analyze_env);
 		}
 		my $body = scheme_analyze(['begin', @expression], $analyze_env);
-		
+
 		return sub {
 		    my $eval_env = shift;
 		    return {
@@ -247,24 +249,24 @@ sub scheme_analyze {
 		};
 	    }
 	    default {		# Apply
-		
+
 		no warnings;
-		
+
 		my @expression = @{ $expr };
 		my ($func_proc, @arg_procs) =
 		  map { scheme_analyze($_, $analyze_env) } @expression;
-		
+
 		return sub {
 		    my $env = shift;
 		    my $func_ref;
 		    eval {
 			$func_ref = $func_proc->($env);
 		    };
-		    
+
 		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
 		    	error("Bad function: @{ [$expression[0]]} at $.\n");
 		    }
-		    
+
 		    my %func = %{ $func_ref };
 		    my @arg_syms = @{ $func{args} }; 
 		    my @arg_vals = map { $_->($env) } @arg_procs;
@@ -272,7 +274,7 @@ sub scheme_analyze {
 		    my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
 		    my $nenv = merge_envs($func{closure_env},
 					  $arg_hash);
-		    
+
 		    if ($TRACED_FUNCTIONS{$expression[0]}) {
 			print STDERR "CALLING FUNCTION: @{[$expression[0]]}\n";
 			print STDERR "            ARGS: @{ [map {to_string($_)} @arg_vals_copy] }\n";
@@ -352,7 +354,7 @@ sub merge_iso_envs {
     # Takes an env hash, and an enviroment iso, and makes a new
     # enviroment iso with the env hash as `env', and the enviroment
     # iso as `parent_env'.
-    
+
     my ($env, $iso_parent) = @_;
     return { env => make_iso_hash($env),
 	     parent_env => $iso_parent };
@@ -362,7 +364,7 @@ sub make_iso_env {
     # Takes an enviroment, and returns a new enviroment that is
     # structurally equivalent to the argument, except without the
     # values copied.
-    
+
     my $env = shift;
     return { env => make_iso_hash($$env{env}),
 	     parent_env => (defined($$env{parent_env}) ?
@@ -373,7 +375,7 @@ sub make_iso_env {
 sub make_iso_hash {
     # Takes a hash reference, and returns a hash referance that has
     # the same keys (but not values) as the hash ref passed in.
-    
+
     my $hash_ref = shift;
     my %new_hash = ();
     foreach (keys %{ $hash_ref }) {
@@ -385,7 +387,7 @@ sub make_iso_hash {
 sub to_string {
     my $obj = shift;
     my $ret = '';
-    
+
     given (ref $obj) {
 	when ('Cons') {
 	    $ret = $obj->to_string(\&to_string);
@@ -417,7 +419,7 @@ sub to_string {
 sub bind_vars {
     my ($syms, $vals) = @_;
     my %new_env = ();
-    
+
     for my $i (0..(scalar @$syms - 1)) {
 	if ($$syms[$i] eq '.') { # slupry
 	    my @rest = @$vals;
@@ -658,6 +660,26 @@ sub Special_forms {
 		    return $obj eq '#f' ? '#t' : '#f';
 		},
 	    },
+	    'number?' => {
+		closure_env => {},
+		args => ['num'],
+		lambda_expr => 'number?',
+		body => sub {
+		    my $env = shift;
+		    my $num = find_var('num', $env);
+		    return looks_like_number($num) ? '#t' : '#f';
+		},
+	     },
+	    'macro?' => {
+		closure_env => {},
+		args        => ['sym'],
+		lambda_expr => 'macro?',
+		body => sub {
+		    my $env = shift;
+		    my $sym = find_var('sym', $env);
+		    return exists $MACROS{$sym} ? '#t' : '#f';
+		},
+	     },
 	    'list?' => {
 		closure_env => {},
 		args        => ['obj'],
@@ -681,12 +703,12 @@ sub Special_forms {
 		    my $env = shift;
 		    my $func = find_var('function', $env);
 		    my $args = find_var('args', $env);
-		    
+
 		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
-		    
+
 		    my $bound = bind_vars($$func{args}, $args);
 		    my $nenv = merge_envs($$func{closure_env}, $bound);
-		    
+
 		    return $$func{body}->($nenv);
 		},
 	    },
@@ -1015,6 +1037,28 @@ sub Special_forms {
 		    }
 		},
 	    },
+	    implode => {
+		closure_env => {},
+		args => ['cons-cell'],
+		lambda_expr => 'implode',
+		body => sub {
+		    my $env = shift;
+		    my $cons = find_var('cons-cell', $env);
+		    my $sym = '';
+		    $cons->mapcar(sub { $sym .= +shift; });
+		    return $sym;
+		},
+	     },
+	     explode => {
+		closure_env => {},
+		args => ['sym'],
+		lambda_expr => 'explode',
+		body => sub {
+		    my $env = shift;
+		    my $sym = find_var('sym', $env);
+		    return array_to_cons([split //, $sym]);
+		},
+	     },
 	    gensym => {
 		closure_env => {},
 		args        => [],
