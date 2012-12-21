@@ -1,4 +1,4 @@
-(define (cps sexpr) (cpc sexpr nil '#cont#))
+(define (cps sexpr) (cpc sexpr nil 'cont))
 
 (define (cpc sexpr env cont)
   (if (atom sexpr)
@@ -17,14 +17,14 @@
 
 (define (cpc-atom sexpr env cont)
   ((lambda (at)
-     (if cont `(,cont ,at) at))
+     (if (or
+	  (eq? cont #f)
+	  (null? cont)) at `(,cont ,at)))
    (cond ((number? sexpr) sexpr)
 	 ((member sexpr env) sexpr)
 	 (#t (implode (cons '@ (explode sexpr)))))))
 
 (define (cpc-lambda sexpr env cont)
-  (write-err "sexpr: " sexpr)
-  (terpri)
   ((lambda (cn)
      ((lambda (lx) (if cont `(,cont ,lx) lx))
       `(lambda (,@(cadr sexpr) ,cn)
@@ -75,8 +75,11 @@
 		     ,(cpc (caddr sexpr) y cont)))))))
 
 (define (cpc-form sexpr env cont)
+  (terpri-err)
   (labels ((loop1
 	    (lambda (x y z)
+	      (write-string-err "xyz " `(,x ,y ,z))
+	      (terpri)
 	      (if (null? x)
 		  (do ((f (reverse (cons cont y))
 			  (if (null? (car z))
@@ -84,10 +87,13 @@
 			      (cpc (car z)
 				   env
 				   `(lambda (,(car y)) ,f))))
+				   ;; `(lambda (,(car y)) ,(reverse (cons (car (reverse f))
+				   ;; 				       (map cadr (cdr (reverse f)))))))))
 		       (y y (cdr y))
 		       (z z (cdr z)))
 		      ((null? z) f)
-		    'foo)
+		    (write-err `(f ,f))
+		    (terpri-err))
 		  (cond ((or (null? (car x))
 			     (atom (car x)))
 			 (loop1 (cdr x)
@@ -95,7 +101,7 @@
 				(cons nil z)))
 			((eq? (caar x) 'quote)
 			 (loop1 (cdr x)
-				(cons (cpc (car x) env nil) y)
+				(cons (car x) y)
 				(cons nil z)))
 			((eq? (caar x) 'lambda)
 			 (loop1 (cdr x)
@@ -106,3 +112,11 @@
 				   (cons (car x) z))))))))
 	  (loop1 sexpr nil nil)))
 
+	  ;; (let ((expr (loop1 sexpr nil nil)))
+	  ;;   (let ((result (reverse (cons (car (reverse expr))
+	  ;; 				 (map cadr (cdr (reverse expr)))))))
+	  ;;     ;; (write-string-err "Result: " result)
+	  ;;     ;; (terpri-err)
+	  ;;     result))))
+
+(load "cp_funcs.scm")

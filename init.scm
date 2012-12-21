@@ -144,6 +144,9 @@
 (define (cdar lst)
   (cdr (car lst)))
 
+(define (cadar lst)
+  (car (cdr (car lst))))
+
 (define (append . lsts)
   (let ((acc nil))
     (map (lambda (n)

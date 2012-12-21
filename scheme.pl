@@ -222,8 +222,10 @@ sub scheme_analyze {
 		    for my $expr (@exprs[0..($#exprs-1)]) {
 			$expr->($env);
 		    }
-		    return $exprs[$#exprs]->($env);
-		    # @_ = $env;
+		    return $exprs[$#exprs] ? $exprs[$#exprs]->($env) : undef;
+
+		    # Attempt at tail-call optimizations:
+		    # @_ = ($env);
 		    # goto &{$exprs[$#exprs]};
 		};
 	    }
@@ -560,8 +562,7 @@ sub Special_forms {
 			return 'nil';
 		    }
 		    else {
-			error("IN FUNCTION CAR: $cons IS NOT A LIST.\n");
-			error("CAR: CALLER: @{ [caller] }\n");
+			error("IN FUNCTION CAR: @{ [to_string($cons)] } IS NOT A LIST.\nCAR: CALLER: @{ [caller] }\n");
 			return undef;
 		    }
 		},
@@ -581,9 +582,11 @@ sub Special_forms {
 		    elsif (ref $cons eq 'Cons') {
 			return $cons->cdr;
 		    }
+		    elsif ($cons eq 'nil') {
+			return 'nil';
+		    }
 		    else {
-			error("IN FUNCTION CDR: ARGUMENT IS NOT A LIST.\n");
-			error("CDR: CALLER: @{ [caller] }\n");
+			error("IN FUNCTION CDR: @{ [to_string($cons)] } IS NOT A LIST.\nCDR: CALLER: @{ [caller] }\n");
 			return undef;
 		    }
 		},
@@ -867,6 +870,15 @@ sub Special_forms {
 			: $thing;
 		},
 	    },
+	    'clear' => {
+		args => [],
+		lambda_expr => 'clear',
+		closure_env => {},
+		body => sub {
+		    system('clear');
+		    return undef;
+		},
+	    },
             'time' => {
 		args => [],
 		lambda_expr => undef,
@@ -1087,10 +1099,21 @@ sub Special_forms {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
 		},
 	    },
+	    dumper => {
+		closure_env => {},
+		args        => ['thing'],
+		lambda_expr => 'dumper',
+		body => sub {
+		    my $env = shift;
+		    my $thing = find_var('thing', $env);
+		    print Dumper($thing);
+		    return undef;
+		},
+            },
 	    trace => {
 		closure_env => {},
 		args        => ['symbol'],
-		lambda_expr => undef,
+		lambda_expr => 'trace',
 		body => sub {
 		    my $env = shift;
 		    my $func = find_var('symbol', $env);
