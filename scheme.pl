@@ -422,16 +422,29 @@ sub bind_vars {
     my ($syms, $vals) = @_;
     my %new_env = ();
 
-    for my $i (0..(scalar @$syms - 1)) {
+    my $sym_length = scalar(@$syms) // 0;
+    my $val_length = scalar(@$vals) // 0;
+
+    my $max = 0;
+    for my $i (0..($sym_length - 1)) {
 	if ($$syms[$i] eq '.' or $$syms[$i] eq '&rest') { # slupry
 	    my @rest = @$vals;
 	    @rest = @rest[$i..$#rest];
 	    $new_env{$$syms[$i+1]} = array_to_cons(\@rest);
+	    $max = -1;
 	    last;
+	}
+	elsif ($val_length <= $i) {
+	    error("Too few args: got $val_length, expected at $sym_length.\n");
 	}
 	else {
 	    $new_env{$$syms[$i]} = $$vals[$i];
 	}
+	$max++;
+    }
+    if ($max != -1 && $val_length > $max &&
+	($sym_length ? $$syms[$max] ne '.' || $$syms[$max] ne '&rest' : 1)) {
+    	error("Too many args: got $val_length, expected $sym_length.\n");
     }
     return \%new_env;
 }
@@ -1097,6 +1110,18 @@ sub Special_forms {
 		lambda_expr => undef,
 		body => sub {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
+		},
+	    },
+	    'compile-file' => {
+		closure_env => {},
+		args        => ['thing', 'output-file'],
+                lambda_expr => 'compile-file',
+	        body => sub {
+		    my $env = shift;
+		    my $file = find_var('output-file', $env);
+		    open my $fh, '>', $file or
+		      error("Could not open $file: $!");
+		    my $thing = find_var('thing', $env);
 		},
 	    },
 	    dumper => {
