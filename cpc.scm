@@ -78,8 +78,6 @@
   (terpri-err)
   (labels ((loop1
 	    (lambda (x y z)
-	      (write-string-err "xyz " `(,x ,y ,z))
-	      (terpri)
 	      (if (null? x)
 		  (do ((f (reverse (cons cont y))
 			  (if (null? (car z))
@@ -87,8 +85,6 @@
 			      (cpc (car z)
 				   env
 				   `(lambda (,(car y)) ,f))))
-				   ;; `(lambda (,(car y)) ,(reverse (cons (car (reverse f))
-				   ;; 				       (map cadr (cdr (reverse f)))))))))
 		       (y y (cdr y))
 		       (z z (cdr z)))
 		      ((null? z) f)
@@ -112,11 +108,17 @@
 				   (cons (car x) z))))))))
 	  (loop1 sexpr nil nil)))
 
-	  ;; (let ((expr (loop1 sexpr nil nil)))
-	  ;;   (let ((result (reverse (cons (car (reverse expr))
-	  ;; 				 (map cadr (cdr (reverse expr)))))))
-	  ;;     ;; (write-string-err "Result: " result)
-	  ;;     ;; (terpri-err)
-	  ;;     result))))
+(define-macro (mcp func)		; Make Contiuation Passing
+  `(define ,(implode (cons '@ (explode func)))
+     (lambda (arg1 &rest args)
+       (set! args (cons arg1 args))
+       (let ((cont (car (reverse args))))
+	 (cont (apply ,func (reverse (cdr (reverse args)))))))))
 
-(load "cp_funcs.scm")
+(define-macro (mcps . funcs)
+  `(begin ,@(map (lambda (func) `(mcp ,func)) funcs)))
+
+(mcps > < = + - * / mod eq? quit car cdr last rplaca rplacd cons list
+      not number? macro? list? apply null? int read clear time load write
+      write-string write-string-err error write-err sleep terpri terpri-err
+      fle macroexpand implode explode gensym env_symbols verbose dumper trace)

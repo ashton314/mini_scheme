@@ -423,7 +423,7 @@ sub bind_vars {
     my %new_env = ();
 
     for my $i (0..(scalar @$syms - 1)) {
-	if ($$syms[$i] eq '.') { # slupry
+	if ($$syms[$i] eq '.' or $$syms[$i] eq '&rest') { # slupry
 	    my @rest = @$vals;
 	    @rest = @rest[$i..$#rest];
 	    $new_env{$$syms[$i+1]} = array_to_cons(\@rest);
