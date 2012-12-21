@@ -9,6 +9,7 @@ BEGIN {
 }
 
 use v5.10;
+use Storable;
 use Time::HiRes qw(gettimeofday);
 use Data::Dumper;
 
@@ -17,20 +18,6 @@ use Cons;
 use String;
 
 BEGIN { print STDERR "Done.\n"; }
-
-## Memory statistics
-BEGIN {
-    print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
-    print `ps u | grep perl | grep -v grep`;
-    print "\n";
-}
-
-END {
-    print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
-    print `ps u | grep perl | grep -v grep`;
-    print "\n";
-}
-
 
 my @FILES_LOADING    = ();
 my $FILES_LOADED     = 0;
@@ -53,6 +40,21 @@ if (open $init_fh, '<', 'init.scm') {
     print STDERR "ERROR: $@" if $@;
     print STDERR "Done.\n\n";
 }
+
+## Memory statistics
+{
+    print "Memory statistics:\n";
+    print "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+    print `ps u | grep perl | grep -v grep`;
+    print "\n";
+}
+
+END {
+    print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+    print `ps u | grep perl | grep -v grep`;
+    print "\n";
+}
+
 
 REPL: {
     print "* ";
@@ -925,32 +927,58 @@ sub Special_forms {
 		    my $file = (find_var('file', $env))->{string};
 		    if (-e $file) {
 			if (-r $file) {
-			    my $fh;
-			    my $loading = @FILES_LOADING;
-			    my $loaded_so_far = $FILES_LOADED;
-			    print STDERR "\n" if $loading;
-			    print STDERR " " foreach 1..$loading;
-			    if (open $fh, '<', $file) {
-				print STDERR "Reading $file...";
-				my $data = scheme_read_from_file($fh);
-				print STDERR "Done.\n";
-				print STDERR (" " x $loading .
-					      "Evaluating $file...");
-				push @FILES_LOADING, "Evaluating $file...";
-				map { scheme_eval($_, \%GLOBAL_ENV) }
-				@{ $data };
-				my $self = pop @FILES_LOADING;
-				if ($loaded_so_far != $FILES_LOADED) {
-				    print STDERR "\n";
-				    print STDERR " " x $loading . $self;
-				    print STDERR "Done.\n";
-				}
-				print STDERR "Done.";
-				$FILES_LOADED++;
-				return '#t';
+			    # Check for compiled files
+			    my $info;
+			    eval {
+			    	$info = Storable::file_magic($file);
+			    };
+			    if (defined($info) && ! $@) {
+			    	# It's a compiled file
+			    	my $loading = @FILES_LOADING;
+			    	my $loaded_so_far = $FILES_LOADED;
+			    	print STDERR "\n" if $loading;
+			    	print STDERR " " foreach 1..$loading;
+			    	print STDERR "Loading compiled file $file...";
+			    	my %compiled_data;
+			    	eval {
+			    	    %compiled_data = %{ retrieve($file) };
+			    	};
+			    	print "Error in load: $@" if $@;
+			    	if (%compiled_data) {
+			    	    $$env{env}->{$_} = $compiled_data{$_}
+			    	      foreach keys %compiled_data;
+			    	}
+			    	print STDERR "Done.\n";
 			    }
 			    else {
-				error("Could not open file: $!\n");
+				# Default file
+				my $fh;
+				my $loading = @FILES_LOADING;
+				my $loaded_so_far = $FILES_LOADED;
+				print STDERR "\n" if $loading;
+				print STDERR " " foreach 1..$loading;
+				if (open $fh, '<', $file) {
+				    print STDERR "Reading $file...";
+				    my $data = scheme_read_from_file($fh);
+				    print STDERR "Done.\n";
+				    print STDERR (" " x $loading .
+						  "Evaluating $file...");
+				    push @FILES_LOADING, "Evaluating $file...";
+				    map { scheme_eval($_, \%GLOBAL_ENV) }
+				      @{ $data };
+				    my $self = pop @FILES_LOADING;
+				    if ($loaded_so_far != $FILES_LOADED) {
+					print STDERR "\n";
+					print STDERR " " x $loading . $self;
+					print STDERR "Done.\n";
+				    }
+				    print STDERR "Done.";
+				    $FILES_LOADED++;
+				    return '#t';
+				}
+				else {
+				    error("Could not open file: $!\n");
+				}
 			    }
 			}
 			else {
@@ -1127,17 +1155,32 @@ sub Special_forms {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
 		},
 	    },
+	    'compile-file' => {
+	    	closure_env => {},
+	    	args        => ['input-file', 'output-file'],
+                lambda_expr => 'compile-file',
+	    	body => sub {
+	    	    my $env = shift;
+	    	    my ($in, $out) = map { find_var($_, $env) }
+	    	      qw(input-file output-file);
+	    	},
+	    },
 	    'compile-to-file' => {
-		closure_env => {},
-		args        => ['thing', 'output-file'],
+	    	closure_env => {},
+	    	args        => ['thing', 'output-file'],
                 lambda_expr => 'compile-to-file',
 	        body => sub {
-		    my $env = shift;
-		    my $file = find_var('output-file', $env);
-		    open my $fh, '>', $file or
-		      error("Could not open $file: $!");
-		    my $thing = find_var('thing', $env);
-		},
+	    	    my $env = shift;
+	    	    my $file = find_var('output-file', $env)->{string};
+	    	    my $sym = find_var('thing', $env);
+	    	    my $obj = find_var($sym, $env);
+	    	    if (store({$sym => $obj}, $file)) {
+	    		return $obj;
+	    	    }
+	    	    else {
+	    		error("Could not store to file $file: $!\n");
+	    	    }
+	    	},
 	    },
 	    dumper => {
 		closure_env => {},
