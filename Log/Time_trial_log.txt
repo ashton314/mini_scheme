@@ -806,3 +806,83 @@ following does not work:
 
 I had to revert back to Cons objects. The program will fall back to
 its previous speeds. Sadness.
+
+
+Thu Dec 20 20:28:36 MST 2012
+
+I'm back!!! Attempting tail-call optimizations...
+
+[===============================================================================
+=====================]
+[===============================================================================
+=====================]
+ANALYZATION AND ONE EXECUTION: 0.0284929275512695
+TOTAL TIME ELAPSED:            29.7851479053497
+NET TIME:                      29.7566549777985
+AVERAGE ITERATION TIME:        0.0297566549777985
+--- CLOSURE TIME TRIAL: FINISH ---
+--- LOOP TIME TRIAL: BEGIN ---
+[===============================================================================
+=====================]
+[===============================================================================
+=====================]
+ANALYZATION AND ONE EXECUTION: 0.05411696434021
+TOTAL TIME ELAPSED:            53.5912790298462
+NET TIME:                      53.537162065506
+AVERAGE ITERATION TIME:        0.053537162065506
+--- LOOP TIME TRIAL: FINISH ---
+--- TIME TRIALS: FINISH ---
+
+Hhmmm... not too impressive. I did drop time with the loops, but I
+gained time in the closures. Running again...
+
+ANALYZATION AND ONE EXECUTION: 0.0284879207611084
+TOTAL TIME ELAPSED:            29.9850959777832
+NET TIME:                      29.9566080570221
+AVERAGE ITERATION TIME:        0.0299566080570221
+--- CLOSURE TIME TRIAL: FINISH ---
+--- LOOP TIME TRIAL: BEGIN ---
+[===============================================================================
+=====================]
+[===============================================================================
+=====================]
+ANALYZATION AND ONE EXECUTION: 0.0523109436035156
+TOTAL TIME ELAPSED:            53.6406209468842
+NET TIME:                      53.5883100032806
+AVERAGE ITERATION TIME:        0.0535883100032806
+
+Same dil. I'll have to check memory consumption. Maybe try:
+
+BEGIN {
+    print "Memory statistics:\n";
+    print `ps | grep perl`;
+}
+
+END {
+    print "Memory statistics:\n";
+    print `ps | grep perl`;
+}
+
+
+Tail call:
+USER     PID %CPU %MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND
+ashton 23117  0.0  0.7  5968  3340  v1  S+    9:58PM   0:00.29 perl scheme.pl (
+ashton 23117 66.1  1.6 11088  8404  v1  S+    9:58PM   1:53.87 perl scheme.pl (
+
+W/o tail call:
+USER     PID %CPU %MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND
+ashton 23178  0.0  0.7  5968  3340  v1  S+   10:02PM   0:00.29 perl scheme.pl (
+ashton 23178 56.9  1.6 11088  8432  v1  S+   10:02PM   1:50.75 perl scheme.pl (
+
+
+Hhmmm... It looks like that tail-call might not be a good thing after
+all. In the end, the fastest program is the one that finishes
+first. There is a tiny memory advantage in the tail-call, but
+seriously, 28K? Not a lot. Well, 8M is a fair chunck of memory, but
+I'm thinking the speed is worth the cost.
+
+To keep in mind:
+- I might be able to optimize this furthur; I don't know if I'm doing
+  it correctly.
+- It might be more efficient with tail-call if I use global
+  continuation-passing style stuff.

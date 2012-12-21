@@ -18,6 +18,20 @@ use String;
 
 BEGIN { print STDERR "Done.\n"; }
 
+## Memory statistics
+BEGIN {
+    print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+    print `ps u | grep perl | grep -v grep`;
+    print "\n";
+}
+
+END {
+    print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+    print `ps u | grep perl | grep -v grep`;
+    print "\n";
+}
+
+
 my @FILES_LOADING    = ();
 my $FILES_LOADED     = 0;
 
@@ -222,6 +236,7 @@ sub scheme_analyze {
 		    for my $expr (@exprs[0..($#exprs-1)]) {
 			$expr->($env);
 		    }
+
 		    return $exprs[$#exprs] ? $exprs[$#exprs]->($env) : undef;
 
 		    # Attempt at tail-call optimizations:
@@ -1112,10 +1127,10 @@ sub Special_forms {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
 		},
 	    },
-	    'compile-file' => {
+	    'compile-to-file' => {
 		closure_env => {},
 		args        => ['thing', 'output-file'],
-                lambda_expr => 'compile-file',
+                lambda_expr => 'compile-to-file',
 	        body => sub {
 		    my $env = shift;
 		    my $file = find_var('output-file', $env);
