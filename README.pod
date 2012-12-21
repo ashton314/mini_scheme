@@ -16,7 +16,7 @@ This is for a science project that I am doing. The abstract of my project:
 
 B<Title>
 
-Studying the effects of a syntactic analyzer on Scheme programs
+Studying the Effects of a Syntactic Analyzer on Scheme Program Execution Time
 
 B<Introduction>
 
@@ -41,10 +41,6 @@ project.
 =head1 KNOWN ISSUES
 
 =over 4
-
-=item *
-
-CALL-WITH-CURRENT-CONTINUATION is non-existent.
 
 =item *
 
@@ -94,10 +90,6 @@ When I get around to it, I'll try to add these things in:
 
 A debugger. B<BIG> maybe.
 
-=item *
-
-CALL-WITH-CURRENT-CONTINUATION. I'll have to use Guy Steele's "LAMBDA: The Ultimate Declarative" a lot if I want to do this.
-
 =back
 
 =head1 BUGS
@@ -114,8 +106,7 @@ NIL really needs some clean-up.
 
 =item *
 
-No major bugs that I know of. Please see the L</KNOWN ISSUES> section
-before reporting something that is wrong.
+Backquote does not handle dotted tail notation properly.
 
 =back
 
