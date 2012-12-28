@@ -80,15 +80,25 @@ Next to no error checking.
 
 =back
 
+=head1 FEATURES
+
+=over 4
+
+=item Lexical Addressing
+
+This cut down my execution times by about 50%. Big win.
+
+=back
+
 =head1 FEATURES TO ADD
 
 When I get around to it, I'll try to add these things in:
 
 =over 4
 
-=item *
+=item Debugger
 
-A debugger. B<BIG> maybe.
+B<BIG> maybe.
 
 =back
 
