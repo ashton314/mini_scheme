@@ -8,17 +8,30 @@ BEGIN {
     print STDERR "Loading modules.....";
 }
 
+## General modules
 use v5.10;
-use Storable;
-use Time::HiRes qw(gettimeofday);
+use Getopt::Long;
 use Data::Dumper;
+use Time::HiRes qw(gettimeofday);
 
+## Modules for compiling code
+use Storable qw(freeze thaw store retrieve);
+use Safe;
+
+## Custom modules for Scheme
 use Reader;
 use Cons;
 use String;
 
 BEGIN { print STDERR "Done.\n"; }
 
+## Options
+my ($NO_INIT, $QUIET, $NO_STATS) = (0, 0, 0);
+GetOptions('no-init'  => \$NO_INIT,   # Disable init file load
+	   quiet      => \$QUIET,     # Suppress load messages
+	   'no-stats' => \$NO_STATS); # Suppress memory statistics
+
+## Global vars
 my @FILES_LOADING    = ();
 my $FILES_LOADED     = 0;
 
@@ -29,20 +42,26 @@ my %GLOBAL_ENV       = Special_forms();
 my $CALLS_TO_ANALYZE = 0;
 my $ANALYZE_VERBOSE  = 0;
 
-my $init_fh;
-if (open $init_fh, '<', 'init.scm') {
-    print STDERR "Loading init file...";
-    my $data = scheme_read_from_file($init_fh);
-    print STDERR "Done.\nParsing init file...";
-    eval {
-	map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
-    };
-    print STDERR "ERROR: $@" if $@;
-    print STDERR "Done.\n\n";
+## Init file
+if ($NO_INIT) {
+    print STDERR "Skipping init file load.\n\n" unless $QUIET;
+}
+else {
+    my $init_fh;
+    if (open $init_fh, '<', 'init.scm') {
+	print STDERR "Loading init file..." unless $QUIET;
+	my $data = scheme_read_from_file($init_fh);
+	print STDERR "Done.\nParsing init file..." unless $QUIET;
+	eval {
+	    map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
+	};
+	print STDERR "ERROR: $@" if $@;
+	print STDERR "Done.\n\n" unless $QUIET;
+    }
 }
 
 ## Memory statistics
-{
+unless ($NO_STATS) {
     print "Memory statistics:\n";
     print "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
     print `ps u | grep perl | grep -v grep`;
@@ -50,9 +69,11 @@ if (open $init_fh, '<', 'init.scm') {
 }
 
 END {
-    print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
-    print `ps u | grep perl | grep -v grep`;
-    print "\n";
+    unless ($NO_STATS) {
+	print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+	print `ps u | grep perl | grep -v grep`;
+	print "\n";
+    }
 }
 
 
@@ -474,15 +495,20 @@ sub merge_envs {
 }
 
 sub find_var {
-    my ($var, $env) = @_;
+    my ($var, $env, $func) = @_;
     my $this_env = $$env{env};
     if (exists $$this_env{$var}) {
-	return $$this_env{$var};
+	if (defined($func)) {
+	    return $func->($$this_env{$var});
+	}
+	else {
+	    return $$this_env{$var};
+	}
     }
     else {
 	if ( $$env{parent_env} ) {
 	    my $parent_env = $$env{parent_env};
-	    return find_var($var, $parent_env);
+	    return find_var($var, $parent_env, $func);
 	}
 	else {
 	    return undef;
@@ -502,7 +528,7 @@ sub set_var {			# setf
 	    return set_var($var, $$env{parent_env}, $val);
 	}
 	else {
-	    error("VAR $var NOT DEFINED @{ [caller] }\n");
+	    error("var $var not defined @{ [caller] }\n");
 	    return undef;
 	}
     }
@@ -921,7 +947,7 @@ sub Special_forms {
 	    load => {
 		args => ['file'],
 		lambda_expr => undef,
-		closure_env => {},
+		closure_env => \%GLOBAL_ENV,
 		body => sub {
 		    my $env = shift;
 		    my $file = (find_var('file', $env))->{string};
@@ -939,16 +965,42 @@ sub Special_forms {
 			    	print STDERR "\n" if $loading;
 			    	print STDERR " " foreach 1..$loading;
 			    	print STDERR "Loading compiled file $file...";
-			    	my %compiled_data;
-			    	eval {
-			    	    %compiled_data = %{ retrieve($file) };
-			    	};
-			    	print "Error in load: $@" if $@;
-			    	if (%compiled_data) {
-			    	    $$env{env}->{$_} = $compiled_data{$_}
-			    	      foreach keys %compiled_data;
+				my $compiled_data;
+				eval {
+				    $compiled_data = ${ retrieve($file) };
+				    # This is serialized
+				};
+			    	(print "Error in load: $@" && return) if $@;
+
+			    	if ($compiled_data) {
+				    my $safe = Safe->new();
+				    $safe->permit(qw(:default require));
+				    {
+					no warnings; 
+					# Turns off an ugly error
+					# message
+
+## BROKEN HERE
+
+					$Storable::Deparse = 1;
+					$Storable::Eval = 1; # WARNING!!!
+					# $Storable::Eval = sub {
+					#     $safe->reval($_[0]); };
+				    }
+
+				    my %data;
+				    {
+					no strict; # MUAHAHAHAHAHAHAHA!!!!!!!
+					%data = %{ thaw($compiled_data) };
+				    }
+
+				    foreach (keys %data) {
+					set_var($_, $env, $data{$_});
+				    }
 			    	}
 			    	print STDERR "Done.\n";
+				$FILES_LOADED++;
+				return '#t';
 			    }
 			    else {
 				# Default file
@@ -1163,23 +1215,32 @@ sub Special_forms {
 	    	    my $env = shift;
 	    	    my ($in, $out) = map { find_var($_, $env) }
 	    	      qw(input-file output-file);
+		    # FIXME: BROKEN
 	    	},
 	    },
-	    'compile-to-file' => {
+	    "\%compile-to-file" => {
 	    	closure_env => {},
-	    	args        => ['thing', 'output-file'],
+	    	args        => ['sym', 'thing', 'output-file'],
                 lambda_expr => 'compile-to-file',
 	        body => sub {
 	    	    my $env = shift;
 	    	    my $file = find_var('output-file', $env)->{string};
-	    	    my $sym = find_var('thing', $env);
-	    	    my $obj = find_var($sym, $env);
-	    	    if (store({$sym => $obj}, $file)) {
-	    		return $obj;
-	    	    }
-	    	    else {
-	    		error("Could not store to file $file: $!\n");
-	    	    }
+	    	    my $sym = find_var('sym', $env);
+	    	    my $obj = find_var('thing', $env);
+
+		    print STDERR "Obj: " . to_string($obj);
+
+		    {
+			no warnings; # Turns of an ugly error message
+			$Storable::Deparse = 1;
+		    }
+		    my $serialized = freeze({$sym => $obj});
+		    if (store(\$serialized, $file)) {
+			return '#t';
+		    }
+		    else {
+			error("Could not store to file: $!");
+		    }
 	    	},
 	    },
 	    dumper => {
@@ -1193,6 +1254,27 @@ sub Special_forms {
 		    return undef;
 		},
             },
+	    dump_env => {
+		closure_env => \%GLOBAL_ENV,
+		args        => ['.', 'syms'],
+		lambda_expr => 'dump_env',
+		body => sub {
+		    my $env = shift;
+		    my $syms = find_var('syms', $env);
+		    if ($syms eq 'nil' || $syms->null()) {
+			print Dumper($env);
+		    }
+		    else {
+			$syms->mapcar(sub {
+					  find_var(+shift, $env,
+						   sub {
+						       print Dumper(+shift);
+						   });
+				      });
+		    }
+		    return undef;
+		},
+	    },
 	    trace => {
 		closure_env => {},
 		args        => ['symbol'],
