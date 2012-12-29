@@ -84,7 +84,7 @@ sub scheme_read {
 	    $stream->('read', 1);
 	    return $READ_TABLE{$char}->($stream, $char, $term_char);
 	}
-	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#\.]/ ) {
+	elsif ($char !~ /[\w\-\!\$\%\@\^\&\*\_\+\=\[\]\{\}\:\<\>\?\/\#\.]/ ) {
 	    $stream->('read', 1) unless ($char eq $term_char);
 	    last LOOP if defined($obj);
 	}

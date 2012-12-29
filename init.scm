@@ -264,6 +264,9 @@
      (begin
        ,@body)))
 
+(define-macro (compile-to-file var filename)
+  `(%compile-to-file ',var ,var ,filename))
+
 ;; SETF
 (define *setf-functions*
   '((car (lambda (thing value)
