@@ -976,7 +976,7 @@ sub Special_forms {
 				    my $safe = Safe->new();
 				    $safe->permit(qw(:default require));
 				    {
-					no warnings; 
+					no warnings;
 					# Turns off an ugly error
 					# message
 
