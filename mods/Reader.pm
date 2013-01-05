@@ -84,7 +84,7 @@ sub scheme_read {
 	    $stream->('read', 1);
 	    return $READ_TABLE{$char}->($stream, $char, $term_char);
 	}
-	elsif ($char !~ /[\w\-!$%@^&*_+=\[\]\{\}:<>?\/#\.]/ ) {
+	elsif ($char !~ /[\w\-\!\$\%\@\^\&\*\_\+\=\[\]\{\}:<>?\/#\.]/ ) {
 	    $stream->('read', 1) unless ($char eq $term_char);
 	    last LOOP if defined($obj);
 	}
@@ -94,7 +94,7 @@ sub scheme_read {
 	    redo LOOP;
 	}
     }
-    
+
     my $zerop = 0;
     {
 	no warnings;
@@ -278,7 +278,7 @@ A simple REPL:
 
    use Data::Dumper;
    use Reader;
-   
+
    while (1) {
       print "* ";
       my $thing = scheme_read(0, "\n");
@@ -290,9 +290,9 @@ Reading data from a file:
 
    use Data::Dumper;
    use Reader;
-   
+
    open my $fh, '<', $file or die "open: $!";
-   
+
    my $data = scheme_read_from_file($fh);
    print "From file:\n" . Dumper($data) . "\n";
 
