@@ -1,1 +1,5 @@
 - Backquote does not handle dotted tail notation properly.
+- Compilation does not work.
+- LABELS might not be working properly because it might be being
+  macroexpanded before full cps conversion takes place. Define it as a
+  special form which is really a macro?

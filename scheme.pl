@@ -8,16 +8,26 @@ BEGIN {
     print STDERR "Loading modules.....";
 }
 
+## General modules
 use v5.10;
-use Time::HiRes qw(gettimeofday);
+use Getopt::Long;
 use Data::Dumper;
+use Time::HiRes qw(gettimeofday);
 
+## Custom modules for Scheme
 use Reader;
 use Cons;
 use String;
 
 BEGIN { print STDERR "Done.\n"; }
 
+## Options
+my ($NO_INIT, $QUIET, $NO_STATS) = (0, 0, 0);
+GetOptions('no-init'  => \$NO_INIT,   # Disable init file load
+	   quiet      => \$QUIET,     # Suppress load messages
+	   'no-stats' => \$NO_STATS); # Suppress memory statistics
+
+## Global vars
 my @FILES_LOADING    = ();
 my $FILES_LOADED     = 0;
 
@@ -28,17 +38,40 @@ my %GLOBAL_ENV       = Special_forms();
 my $CALLS_TO_ANALYZE = 0;
 my $ANALYZE_VERBOSE  = 0;
 
-my $init_fh;
-if (open $init_fh, '<', 'init.scm') {
-    print STDERR "Loading init file...";
-    my $data = scheme_read_from_file($init_fh);
-    print STDERR "Done.\nParsing init file...";
-    eval {
-	map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
-    };
-    print STDERR "ERROR: $@" if $@;
-    print STDERR "Done.\n\n";
+## Init file
+if ($NO_INIT) {
+    print STDERR "Skipping init file load.\n\n" unless $QUIET;
 }
+else {
+    my $init_fh;
+    if (open $init_fh, '<', 'init.scm') {
+	print STDERR "Loading init file..." unless $QUIET;
+	my $data = scheme_read_from_file($init_fh);
+	print STDERR "Done.\nParsing init file..." unless $QUIET;
+	eval {
+	    map { scheme_eval($_, \%GLOBAL_ENV) } @{ $data };
+	};
+	print STDERR "ERROR: $@" if $@;
+	print STDERR "Done.\n\n" unless $QUIET;
+    }
+}
+
+## Memory statistics
+unless ($NO_STATS) {
+    print "Memory statistics:\n";
+    print "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+    print `ps u | grep perl | grep -v grep`;
+    print "\n";
+}
+
+END {
+    unless ($NO_STATS) {
+	print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+	print `ps u | grep perl | grep -v grep`;
+	print "\n";
+    }
+}
+
 
 REPL: {
     print "* ";
@@ -222,6 +255,7 @@ sub scheme_analyze {
 		    for my $expr (@exprs[0..($#exprs-1)]) {
 			$expr->($env);
 		    }
+
 		    return $exprs[$#exprs] ? $exprs[$#exprs]->($env) : undef;
 
 		    # Attempt at tail-call optimizations:
@@ -422,16 +456,29 @@ sub bind_vars {
     my ($syms, $vals) = @_;
     my %new_env = ();
 
-    for my $i (0..(scalar @$syms - 1)) {
+    my $sym_length = scalar(@$syms) // 0;
+    my $val_length = scalar(@$vals) // 0;
+
+    my $max = 0;
+    for my $i (0..($sym_length - 1)) {
 	if ($$syms[$i] eq '.' or $$syms[$i] eq '&rest') { # slupry
 	    my @rest = @$vals;
 	    @rest = @rest[$i..$#rest];
 	    $new_env{$$syms[$i+1]} = array_to_cons(\@rest);
+	    $max = -1;
 	    last;
+	}
+	elsif ($val_length <= $i) {
+	    error("Too few args: got $val_length, expected at $sym_length.\n");
 	}
 	else {
 	    $new_env{$$syms[$i]} = $$vals[$i];
 	}
+	$max++;
+    }
+    if ($max != -1 && $val_length > $max &&
+	($sym_length ? $$syms[$max] ne '.' || $$syms[$max] ne '&rest' : 1)) {
+    	error("Too many args: got $val_length, expected $sym_length.\n");
     }
     return \%new_env;
 }
@@ -444,15 +491,20 @@ sub merge_envs {
 }
 
 sub find_var {
-    my ($var, $env) = @_;
+    my ($var, $env, $func) = @_;
     my $this_env = $$env{env};
     if (exists $$this_env{$var}) {
-	return $$this_env{$var};
+	if (defined($func)) {
+	    return $func->($$this_env{$var});
+	}
+	else {
+	    return $$this_env{$var};
+	}
     }
     else {
 	if ( $$env{parent_env} ) {
 	    my $parent_env = $$env{parent_env};
-	    return find_var($var, $parent_env);
+	    return find_var($var, $parent_env, $func);
 	}
 	else {
 	    return undef;
@@ -472,7 +524,7 @@ sub set_var {			# setf
 	    return set_var($var, $$env{parent_env}, $val);
 	}
 	else {
-	    error("VAR $var NOT DEFINED @{ [caller] }\n");
+	    error("var $var not defined @{ [caller] }\n");
 	    return undef;
 	}
     }
@@ -891,12 +943,17 @@ sub Special_forms {
 	    load => {
 		args => ['file'],
 		lambda_expr => undef,
-		closure_env => {},
+		closure_env => \%GLOBAL_ENV,
 		body => sub {
 		    my $env = shift;
 		    my $file = (find_var('file', $env))->{string};
 		    if (-e $file) {
 			if (-r $file) {
+			    # Check for compiled files
+			    my $info;
+			    eval {
+			    	$info = Storable::file_magic($file);
+			    };
 			    my $fh;
 			    my $loading = @FILES_LOADING;
 			    my $loaded_so_far = $FILES_LOADED;
@@ -910,7 +967,7 @@ sub Special_forms {
 					      "Evaluating $file...");
 				push @FILES_LOADING, "Evaluating $file...";
 				map { scheme_eval($_, \%GLOBAL_ENV) }
-				@{ $data };
+				  @{ $data };
 				my $self = pop @FILES_LOADING;
 				if ($loaded_so_far != $FILES_LOADED) {
 				    print STDERR "\n";
@@ -1110,6 +1167,27 @@ sub Special_forms {
 		    return undef;
 		},
             },
+	    dump_env => {
+		closure_env => \%GLOBAL_ENV,
+		args        => ['.', 'syms'],
+		lambda_expr => 'dump_env',
+		body => sub {
+		    my $env = shift;
+		    my $syms = find_var('syms', $env);
+		    if ($syms eq 'nil' || $syms->null()) {
+			print Dumper($env);
+		    }
+		    else {
+			$syms->mapcar(sub {
+					  find_var(+shift, $env,
+						   sub {
+						       print Dumper(+shift);
+						   });
+				      });
+		    }
+		    return undef;
+		},
+	    },
 	    trace => {
 		closure_env => {},
 		args        => ['symbol'],
