@@ -14,10 +14,6 @@ use Getopt::Long;
 use Data::Dumper;
 use Time::HiRes qw(gettimeofday);
 
-## Modules for compiling code
-use Storable qw(freeze thaw store retrieve);
-use Safe;
-
 ## Custom modules for Scheme
 use Reader;
 use Cons;
@@ -958,79 +954,32 @@ sub Special_forms {
 			    eval {
 			    	$info = Storable::file_magic($file);
 			    };
-			    if (defined($info) && ! $@) {
-			    	# It's a compiled file
-			    	my $loading = @FILES_LOADING;
-			    	my $loaded_so_far = $FILES_LOADED;
-			    	print STDERR "\n" if $loading;
-			    	print STDERR " " foreach 1..$loading;
-			    	print STDERR "Loading compiled file $file...";
-				my $compiled_data;
-				eval {
-				    $compiled_data = ${ retrieve($file) };
-				    # This is serialized
-				};
-			    	(print "Error in load: $@" && return) if $@;
-
-			    	if ($compiled_data) {
-				    my $safe = Safe->new();
-				    $safe->permit(qw(:default require));
-				    {
-					no warnings;
-					# Turns off an ugly error
-					# message
-
-## BROKEN HERE
-
-					$Storable::Deparse = 1;
-					$Storable::Eval = 1; # WARNING!!!
-					# $Storable::Eval = sub {
-					#     $safe->reval($_[0]); };
-				    }
-
-				    my %data;
-				    {
-					no strict; # MUAHAHAHAHAHAHAHA!!!!!!!
-					%data = %{ thaw($compiled_data) };
-				    }
-
-				    foreach (keys %data) {
-					set_var($_, $env, $data{$_});
-				    }
-			    	}
-			    	print STDERR "Done.\n";
+			    my $fh;
+			    my $loading = @FILES_LOADING;
+			    my $loaded_so_far = $FILES_LOADED;
+			    print STDERR "\n" if $loading;
+			    print STDERR " " foreach 1..$loading;
+			    if (open $fh, '<', $file) {
+				print STDERR "Reading $file...";
+				my $data = scheme_read_from_file($fh);
+				print STDERR "Done.\n";
+				print STDERR (" " x $loading .
+					      "Evaluating $file...");
+				push @FILES_LOADING, "Evaluating $file...";
+				map { scheme_eval($_, \%GLOBAL_ENV) }
+				  @{ $data };
+				my $self = pop @FILES_LOADING;
+				if ($loaded_so_far != $FILES_LOADED) {
+				    print STDERR "\n";
+				    print STDERR " " x $loading . $self;
+				    print STDERR "Done.\n";
+				}
+				print STDERR "Done.";
 				$FILES_LOADED++;
 				return '#t';
 			    }
 			    else {
-				# Default file
-				my $fh;
-				my $loading = @FILES_LOADING;
-				my $loaded_so_far = $FILES_LOADED;
-				print STDERR "\n" if $loading;
-				print STDERR " " foreach 1..$loading;
-				if (open $fh, '<', $file) {
-				    print STDERR "Reading $file...";
-				    my $data = scheme_read_from_file($fh);
-				    print STDERR "Done.\n";
-				    print STDERR (" " x $loading .
-						  "Evaluating $file...");
-				    push @FILES_LOADING, "Evaluating $file...";
-				    map { scheme_eval($_, \%GLOBAL_ENV) }
-				      @{ $data };
-				    my $self = pop @FILES_LOADING;
-				    if ($loaded_so_far != $FILES_LOADED) {
-					print STDERR "\n";
-					print STDERR " " x $loading . $self;
-					print STDERR "Done.\n";
-				    }
-				    print STDERR "Done.";
-				    $FILES_LOADED++;
-				    return '#t';
-				}
-				else {
-				    error("Could not open file: $!\n");
-				}
+				error("Could not open file: $!\n");
 			    }
 			}
 			else {
@@ -1206,42 +1155,6 @@ sub Special_forms {
 		body => sub {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
 		},
-	    },
-	    'compile-file' => {
-	    	closure_env => {},
-	    	args        => ['input-file', 'output-file'],
-                lambda_expr => 'compile-file',
-	    	body => sub {
-	    	    my $env = shift;
-	    	    my ($in, $out) = map { find_var($_, $env) }
-	    	      qw(input-file output-file);
-		    # FIXME: BROKEN
-	    	},
-	    },
-	    "\%compile-to-file" => {
-	    	closure_env => {},
-	    	args        => ['sym', 'thing', 'output-file'],
-                lambda_expr => 'compile-to-file',
-	        body => sub {
-	    	    my $env = shift;
-	    	    my $file = find_var('output-file', $env)->{string};
-	    	    my $sym = find_var('sym', $env);
-	    	    my $obj = find_var('thing', $env);
-
-		    print STDERR "Obj: " . to_string($obj);
-
-		    {
-			no warnings; # Turns of an ugly error message
-			$Storable::Deparse = 1;
-		    }
-		    my $serialized = freeze({$sym => $obj});
-		    if (store(\$serialized, $file)) {
-			return '#t';
-		    }
-		    else {
-			error("Could not store to file: $!");
-		    }
-	    	},
 	    },
 	    dumper => {
 		closure_env => {},
