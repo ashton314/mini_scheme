@@ -8,8 +8,8 @@
 	 ('quote (if cont `(,cont ,sexpr) sexpr))
 	 ('lambda (cpc-lambda sexpr env cont))
 	 ('if (cpc-if sexpr env cont))
-	 ('catch (cpc-catch sexpr env cont))
-	 ('labels (cpc-labels sexpr env cont)))
+	 ('catch (cpc-catch sexpr env cont)))
+;	 ('labels (cpc-labels sexpr env cont)))
        (cond ((and (atom (car sexpr))
 		   (macro? (car sexpr)))
 	      (cpc (macroexpand sexpr) env cont)) ; Macro expand
@@ -17,10 +17,11 @@
 
 (define (cpc-atom sexpr env cont)
   ((lambda (at)
-     (if (or
-	  (eq? cont #f)
-	  (null? cont)) at `(,cont ,at)))
+     (if (or (eq? cont #f) (null? cont))
+	 at
+	 `(,cont ,at)))
    (cond ((number? sexpr) sexpr)
+	 ((eq? sexpr nil) sexpr)
 	 ((member sexpr env) sexpr)
 	 (#t (implode (cons '@ (explode sexpr)))))))
 
