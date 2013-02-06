@@ -1156,6 +1156,17 @@ sub Special_forms {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
 		},
 	    },
+	    memory => {
+		closure_env => {},
+		args        => [],
+	        lambda_expr => 'memory',
+		body => sub {
+		    print "Memory statistics:\n";
+		    print "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+		    print `ps u | grep perl | grep -v grep`;
+		    print "\n";
+		},
+	    },
 	    dumper => {
 		closure_env => {},
 		args        => ['thing'],

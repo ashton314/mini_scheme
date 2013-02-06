@@ -63,6 +63,7 @@
        ,cont))
    (gensym)))
 
+;; Not used (labels is a macro)
 (define (cpc-labels sexpr env cont)
   (do ((x (cadr sexpr) (cdr x))
        (y env (cons (caar x) y)))
@@ -76,7 +77,6 @@
 		     ,(cpc (caddr sexpr) y cont)))))))
 
 (define (cpc-form sexpr env cont)
-  (terpri-err)
   (labels ((loop1
 	    (lambda (x y z)
 	      (if (null? x)
@@ -118,6 +118,7 @@
   `(begin ,@(map (lambda (func) `(mcp ,func)) funcs)))
 
 (mcps > < = + - * / mod eq? quit car cdr last rplaca rplacd cons list
-      not number? macro? list? apply null? int read clear time load write
-      write-string write-string-err error write-err sleep terpri terpri-err
-      fle macroexpand implode explode gensym env_symbols verbose dumper trace)
+      )
+      ;; not number? macro? list? apply null? int read clear time load write
+      ;; write-string write-string-err error write-err sleep terpri terpri-err
+      ;; fle macroexpand implode explode gensym env_symbols verbose dumper trace)

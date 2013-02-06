@@ -102,6 +102,16 @@ B<BIG> maybe.
 
 =back
 
+=head1 TODO
+
+=over 4
+
+=item *
+
+I think I could optimize memory in the following manner: because of syntactic analysis, we can know what variables are going to be needed in a given expression. We can use this to do two things: warn the user when there is a variable that is not used, and optimize which variables get saved in a closure enviroment.
+
+=back
+
 =head1 BUGS
 
 =over 4
