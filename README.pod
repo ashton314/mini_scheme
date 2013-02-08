@@ -4,9 +4,13 @@ Mini Scheme -- A science project
 
 =head1 DESCRIPTION
 
-Boot that REPL!!
+Load syntactic analyzer implementation:
 
   perl scheme.pl
+
+Load metacircular evaluator implementation:
+
+  perl metacircular.pl
 
 =head1 BACKGROUND
 
@@ -37,6 +41,42 @@ observed.
 
 For the full, up-to-date lab report, see the doc/ directory in this
 project.
+
+=head1 METACIRCULAR VS. SYNTACTIC ANALYZER
+
+In chapter 4 of I<Structure and Interpretation of Computer Programs>,
+the authors describe a simple scheme interpreter. In subsequent
+sections, enhancements are made to this interpreter. The two main
+versions of interpreters are "metacircular" interpreters and "syntactic
+analyzers".
+
+=head2 METACIRCULAR
+
+TODO: Write how a metacircular evaluator works.
+
+=head2 SYNTACTIC ANALYZER
+
+TODO: Write how a syntactic analyzer works.
+
+=head1 CONTROL FLAGS
+
+There are (so far) three command line options for this interpreter:
+
+=over 4
+
+=item quiet
+
+When this flag is present, load messages are silenced.
+
+=item no-init
+
+When this flag is present, the init file in F<init.scm> is not loaded.
+
+=item no-stats
+
+When this flag present, memory statistics are suppressed.
+
+=back
 
 =head1 KNOWN ISSUES
 
@@ -108,13 +148,41 @@ B<BIG> maybe.
 
 =item *
 
-I think I could optimize memory in the following manner: because of syntactic analysis, we can know what variables are going to be needed in a given expression. We can use this to do two things: warn the user when there is a variable that is not used, and optimize which variables get saved in a closure enviroment.
+I think I could optimize memory in the following manner: because of
+syntactic analysis, we can know what variables are going to be needed
+in a given expression. We can use this to do two things: warn the user
+when there is a variable that is not used, and optimize which
+variables get saved in a closure environment.
+
+=item *
+
+I I<might> be able to replace the Cons class with some more low-level
+managing of hashes. This might make it a bit more difficult to
+distinguish between different data types, but it might make my data
+structures operate a bit faster. I think I might be able to get a big
+speed gain out of this.
 
 =back
 
 =head1 BUGS
 
 =over 4
+
+=item *
+
+Macros are not inserted into the global enviroment. This allows for
+namespace collision. If a symbol, defined as a macro, is defined as a
+function, the macro will be expanded, to the confusion of the
+programmer. Also, a symbol may be a variable without
+conflict.
+
+I could add checking for this in variable/function lookups,
+definitions, and assignments.
+
+=item *
+
+The Cons package may have self-referential data structures, not
+allowing the garbage collector to reallocate memory so consumed.
 
 =item *
 

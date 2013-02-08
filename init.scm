@@ -14,6 +14,12 @@
       1
       (* n (factorial (- n 1)))))
 
+(define (! n)
+  (if (= n 1)
+      1
+      (* n (! (- n 1)))))
+
+
 (define (cadr lst)
   (car (cdr lst)))
 
@@ -263,6 +269,12 @@
        ,@(map (lambda (form) `(set! ,(car form) ,(cadr form))) forms))
      (begin
        ,@body)))
+
+(define-macro (pop var)
+  (let ((temp (gensym)))
+    `(let ((,temp (car ,var)))
+       (set! ,var (cdr ,var))
+       ,temp)))
 
 (define-macro (compile-to-file var filename)
   `(%compile-to-file ',var ,var ,filename))

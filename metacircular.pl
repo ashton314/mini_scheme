@@ -93,39 +93,29 @@ REPL: {
     redo REPL;
 }
 
+
 sub scheme_eval {
     my ($expr, $env) = @_;
-    my $analyzed = scheme_analyze($expr);
-    my $evaluated = $analyzed->($env);
-    return $evaluated;
-}
-
-sub scheme_analyze {
-    my $expr = shift;
-    my $analyze_env = shift // make_iso_env(\%GLOBAL_ENV);
     $CALLS_TO_ANALYZE++ if $ANALYZE_VERBOSE;
 
     if (ref $expr eq 'ARRAY') {
 	given ($$expr[0]) {
-	    when ('string') { return sub { new String($$expr[1]); }; }
+	    when ('string') { return String->new($$expr[1]); }
 	    when ('quote') {
 		given (ref $$expr[1]) {
 		    when ('ARRAY') {
 			my $cons = array_to_cons($$expr[1]);
-			return sub { $cons; };
+			return $cons;
 		    }
 		    default {
-			return sub { $$expr[1]; };
+			return $$expr[1];
 		    }
 		}
 	    }
 	    when ('set!') {
 		my $var = $$expr[1];
-		my $val = scheme_analyze($$expr[2], $analyze_env);
-		return
-		  sub {
-		      return set_var($var, $_[0], $val->($_[0]));
-		  };
+		my $val = scheme_eval($$expr[2], $env);
+		return set_var($var, $env, $val);
 	    }
 	    when ('define') {
 		my @expr = @{ $expr };
@@ -135,37 +125,17 @@ sub scheme_analyze {
 		if (ref $expr[1] eq 'ARRAY') { # Function def
 		    my @arglist = @{ shift @expression };
 		    my @body    = @expression;
-		    $$analyze_env{env}->{$expr[1][0]} = 1;
-		    my $to_call =
-		      scheme_analyze(['set!', (shift @arglist),
-				      ['lambda', \@arglist, @body]],
-				     $analyze_env);
-		    return sub {
-			my $env = shift;
-			unless (exists $env->{env}{$expr[1][0]}) {
-			    $env->{env}{$expr[1][0]} = 1;
-			}
-			$to_call->($env);
-		    };
+
+		    $env->{env}{$expr[1][0]} = 1 unless exists $env->{env}{$expr[1][0]};
+		    return scheme_eval(['set!', (shift @arglist),
+					['lambda', \@arglist, @body]],
+				       $env);
 		}
 		else {		# Var def
-		    $$analyze_env{env}->{$expr[1]} = 1;
-		    my $to_call;
-
-		    unless ($expression[1]) {
-			$to_call = scheme_analyze(['set!', (shift @expression),
-						   'undef'], $analyze_env);
-		    }
-		    else {
-			$to_call = scheme_analyze(['set!', (shift @expression),
-						   (shift @expression)],
-						  $analyze_env);
-		    }
-
-		    return sub {
-			$_[0]->{env}{$expr[1]} = '';
-			$to_call->($_[0]);
-		    };
+		    $$env{env}->{$expr[1]} = 1;
+		    return scheme_eval(['set!', (shift @expression),
+					($expression[0] ? (shift @expression) : 'undef')],
+				       $env);
 		}
 	    }
 	    when ('define-macro') {
@@ -174,21 +144,18 @@ sub scheme_analyze {
 
 		my @arg_list = @{ shift @expr };
 		my $macro = shift @arg_list;
-		my %arg_hash = map { $_ => 1 } @arg_list;
-		$$analyze_env{env}->{$macro} = 1;
-		$analyze_env = merge_iso_envs(\%arg_hash, $analyze_env);
-		my $body = scheme_analyze(['begin', @expr], $analyze_env);
+		$$env{env}->{$macro} = 1;
 
 		$MACROS{$macro} = {
 				   body => sub {
 				       my ($env, $args) = @_;
 				       my $nenv = merge_envs($env, $args);
-				       return $body->($nenv);
+				       return scheme_eval(['begin', @expr], $env);
 				   },
 				   args => \@arg_list,
 				  };
 
-		return sub { return $macro; };
+		return $macro;
 	    }
 	    when (exists $MACROS{$_}) { # Macro expander
 		my %macro = %{ $MACROS{$_} };
@@ -203,144 +170,112 @@ sub scheme_analyze {
 		my $to_analyze =
 		  ref $expanded eq 'Cons' ? cons_to_array($expanded)
 		    : $expanded;
-		my $proc = scheme_analyze($to_analyze, $analyze_env);
-		return sub {
-		    my $env = shift;
-		    return $proc->($env);
-		};
+		return scheme_eval($to_analyze, $env);
 	    }
 	    when ('while') {
 		my @expr = @{ $expr };
 		shift @expr; 	# Knock off that 'while'
 
-		my $cond = scheme_analyze(shift @expr, $analyze_env);
-		my $body = scheme_analyze(['begin', @expr], $analyze_env);
-		return sub {
-		    my $env = shift;
-		    my $res = '#f';
-		    while ($cond->($env) ne '#f') {
-			$res = $body->($env);
-		    }
-		    return $res;
-		};
-
+		my $cond = scheme_eval(shift @expr, $env);
+		my $body = scheme_eval(['begin', @expr], $env);
+		my $res = '#f';
+		my $condition = scheme_eval($cond, $env);
+		while ($condition ne '#f' && (ref $condition eq 'Cons' ? ! $condition->null : $condition ne 'nil')) {
+		    $res = scheme_eval($body, $env);
+		    $condition = scheme_eval($cond, $env);
+		}
+		return $res;
 	    }
 	    when ('if') {
-		my $pred = scheme_analyze($$expr[1], $analyze_env);
-		my $tcl  = scheme_analyze($$expr[2], $analyze_env);
-		my $fcl  = defined($$expr[3]) ? scheme_analyze($$expr[3], $analyze_env) : 0;
-		return sub {
-		    my $env = shift;
-		    my $test_val = $pred->($env);
-		    if ((! defined($test_val)) || $test_val ne '#f') {
-			return $tcl->($env);
+		my $pred = $$expr[1];
+		my $tcl  = $$expr[2];
+		my $fcl  = defined($$expr[3]) ? $$expr[3] : 0;
+		my $test_val = scheme_eval($pred, $env);
+		if ((! defined($test_val)) || $test_val ne '#f') {
+		    return scheme_eval($tcl, $env);
+		}
+		else {
+		    if ($fcl) {
+			return scheme_eval($fcl, $env);
 		    }
 		    else {
-			if ($fcl) {
-			    return $fcl->($env);
-			}
-			else {
-			    return '#f';
-			}
+			return '#f';
 		    }
-		};
+		}
 	    }
 	    when ('begin') {
-		my $env = shift;
 		my @block = @{ $expr };
 		shift @block;	# Cut off the 'BEGIN'
-		my @exprs = map { scheme_analyze($_, $analyze_env) } @block;
-		return sub {
-		    my $env = shift;
-		    for my $expr (@exprs[0..($#exprs-1)]) {
-			$expr->($env);
-		    }
 
-		    return $exprs[$#exprs] ? $exprs[$#exprs]->($env) : undef;
+		for my $expr (@block[0..($#block-1)]) {
+		    scheme_eval($expr, $env);
+		}
 
-		    # Attempt at tail-call optimizations:
-		    # @_ = ($env);
-		    # goto &{$exprs[$#exprs]};
-		};
+		return $block[$#block] ? scheme_eval($block[$#block], $env) : undef;
 	    }
 	    when ('lambda') {
 		my @expression = @{ $expr };
 		shift @expression; # Cut off the 'LAMBDA'
 		my $params = shift @expression;
-		if (ref $params eq 'ARRAY') {
-		    my %arg_hash = map { $_ => 1 } @{ $params };
-		    $analyze_env = merge_iso_envs(\%arg_hash, $analyze_env);
-		}
-		my $body = scheme_analyze(['begin', @expression], $analyze_env);
 
-		return sub {
-		    my $eval_env = shift;
-		    return {
-			    closure_env => $eval_env,
-			    args        => $params,
-			    lambda_expr => \@expression,
-			    body        => $body,
-			    name        => '__ANNON__',
-			   };
-		};
+		# if (ref $params eq 'ARRAY') {
+		#     my %arg_hash = map { $_ => 1 } @{ $params };
+		#     $env = merge_iso_envs(\%arg_hash, $env);
+		# }
+
+		return {
+			closure_env => $env,
+			args        => $params,
+			lambda_expr => \@expression,
+			body        => ['begin', @expression],
+			name        => '__ANNON__',
+		       };
 	    }
 	    default {		# Apply
 
 		no warnings;
 
 		my @expression = @{ $expr };
-		my ($func_proc, @arg_procs) =
-		  map { scheme_analyze($_, $analyze_env) } @expression;
+		my ($func_proc, @arg_procs) = @expression;
 
-		return sub {
-		    my $env = shift;
-		    my $func_ref;
-		    eval {
-			$func_ref = $func_proc->($env);
-		    };
-
-		    if (! defined($func_ref) or ref $func_ref ne 'HASH') {
-		    	error("Bad function: @{ [$expression[0]]} at $.\n");
-		    }
-
-		    my %func = %{ $func_ref };
-		    my @arg_syms = @{ $func{args} }; 
-		    my @arg_vals = map { $_->($env) } @arg_procs;
-		    my @arg_vals_copy = @arg_vals;
-		    my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
-		    my $nenv = merge_envs($func{closure_env},
-					  $arg_hash);
-
-		    if ($TRACED_FUNCTIONS{$expression[0]}) {
-			print STDERR "CALLING FUNCTION: @{[$expression[0]]}\n";
-			print STDERR "            ARGS: @{ [map {to_string($_)} @arg_vals_copy] }\n";
-		    }
-		    my $result = $func{body}->($nenv);
-		    if ($TRACED_FUNCTIONS{$expression[0]}) {
-			print STDERR "          RESULT: $result\n";
-		    }
-		    return $result;
+		my $func_ref;
+		eval {
+		    $func_ref = scheme_eval($func_proc, $env);
 		};
+
+		if (! defined($func_ref) or ref $func_ref ne 'HASH') {
+		    error("Bad function: @{ [$expression[0]]} at $.\n");
+		}
+
+		my %func = %{ $func_ref };
+		my @arg_syms = @{ $func{args} };
+		my @arg_vals = map { scheme_eval($_, $env) } @arg_procs;
+		my @arg_vals_copy = @arg_vals;
+		my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
+		my $nenv = merge_envs($func{closure_env},
+				      $arg_hash);
+
+		if ($TRACED_FUNCTIONS{$expression[0]}) {
+		    print STDERR "CALLING FUNCTION: @{[$expression[0]]}\n";
+		    print STDERR "            ARGS: @{ [map {to_string($_)} @arg_vals_copy] }\n";
+		}
+		my $result = ref $func{body} eq 'CODE' ? $func{body}->($nenv) : scheme_eval($func{body}, $nenv);
+		if ($TRACED_FUNCTIONS{$expression[0]}) {
+		    print STDERR "          RESULT: $result\n";
+		}
+		return $result;
 	    }
 	}
     }
     else {
 	if (looks_like_number($expr)) {
-	    return sub {
-		return $expr;
-	    };
+	    return $expr;
 	}
 	elsif (substr($expr, 0, 1) eq ':') { # Keywords
-	    return sub {
-		return $expr;
-	    };
+	    return $expr;
 	}
 	else {		# Variable
-	    return
-	      compile_var_lookup($expr, $analyze_env) //
-		sub {
-		    return find_var($expr, $_[0]);
-		};
+	    return find_var($expr, $env);
 	}
     }
 }
@@ -689,7 +624,7 @@ sub Special_forms {
 		lambda_expr => 'cons',
 		body => sub {
 		    my $env = shift;
-		    my ($arg1, $arg2) = 
+		    my ($arg1, $arg2) =
 			map { find_var($_, $env) } qw(arg1 arg2);
 		    $arg1 = array_to_cons($arg1) if ref $arg1 eq 'ARRAY';
 		    $arg2 = array_to_cons($arg2) if ref $arg2 eq 'ARRAY';
@@ -946,7 +881,8 @@ sub Special_forms {
 		closure_env => \%GLOBAL_ENV,
 		body => sub {
 		    my $env = shift;
-		    my $file = (find_var('file', $env))->{string};
+		    my $file_string = find_var('file', $env);
+		    my $file = $file_string->{string};
 		    if (-e $file) {
 			if (-r $file) {
 			    # Check for compiled files
@@ -1093,7 +1029,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $form = find_var('form', $env);
 		    my $form_ref = cons_to_array($form);
-		    if (exists $MACROS{$$form_ref[0]}) { 
+		    if (exists $MACROS{$$form_ref[0]}) {
 			my %macro = %{ $MACROS{$$form_ref[0]} };
 			my ($macro_body, $macro_args) = map { $macro{$_} }
 			qw(body args);

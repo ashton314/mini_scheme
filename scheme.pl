@@ -142,26 +142,15 @@ sub scheme_analyze {
 				     $analyze_env);
 		    return sub {
 			my $env = shift;
-			unless (exists $env->{env}{$expr[1][0]}) {
-			    $env->{env}{$expr[1][0]} = 1;
-			}
+			$env->{env}{$expr[1][0]} = 1 unless exists $env->{env}{$expr[1][0]};
 			$to_call->($env);
 		    };
 		}
 		else {		# Var def
 		    $$analyze_env{env}->{$expr[1]} = 1;
-		    my $to_call;
-
-		    unless ($expression[1]) {
-			$to_call = scheme_analyze(['set!', (shift @expression),
-						   'undef'], $analyze_env);
-		    }
-		    else {
-			$to_call = scheme_analyze(['set!', (shift @expression),
-						   (shift @expression)],
-						  $analyze_env);
-		    }
-
+		    my $to_call = scheme_analyze(['set!', (shift @expression),
+						  ($expression[0] ? (shift @expression) : 'undef')],
+						 $analyze_env);
 		    return sub {
 			$_[0]->{env}{$expr[1]} = '';
 			$to_call->($_[0]);
@@ -218,8 +207,10 @@ sub scheme_analyze {
 		return sub {
 		    my $env = shift;
 		    my $res = '#f';
-		    while ($cond->($env) ne '#f') {
+		    my $condition = $cond->($env);
+		    while ($condition ne '#f' && (ref $condition eq 'Cons' ? ! $condition->null : $condition ne 'nil')) {
 			$res = $body->($env);
+			$condition = $cond->($env);
 		    }
 		    return $res;
 		};
@@ -304,7 +295,7 @@ sub scheme_analyze {
 		    }
 
 		    my %func = %{ $func_ref };
-		    my @arg_syms = @{ $func{args} }; 
+		    my @arg_syms = @{ $func{args} };
 		    my @arg_vals = map { $_->($env) } @arg_procs;
 		    my @arg_vals_copy = @arg_vals;
 		    my $arg_hash = bind_vars(\@arg_syms, \@arg_vals);
@@ -689,7 +680,7 @@ sub Special_forms {
 		lambda_expr => 'cons',
 		body => sub {
 		    my $env = shift;
-		    my ($arg1, $arg2) = 
+		    my ($arg1, $arg2) =
 			map { find_var($_, $env) } qw(arg1 arg2);
 		    $arg1 = array_to_cons($arg1) if ref $arg1 eq 'ARRAY';
 		    $arg2 = array_to_cons($arg2) if ref $arg2 eq 'ARRAY';
@@ -1093,7 +1084,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $form = find_var('form', $env);
 		    my $form_ref = cons_to_array($form);
-		    if (exists $MACROS{$$form_ref[0]}) { 
+		    if (exists $MACROS{$$form_ref[0]}) {
 			my %macro = %{ $MACROS{$$form_ref[0]} };
 			my ($macro_body, $macro_args) = map { $macro{$_} }
 			qw(body args);
