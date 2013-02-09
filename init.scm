@@ -282,9 +282,9 @@
 ;; SETF
 (define *setf-functions*
   '((car (lambda (thing value)
-	   (rplaca thing value)))
+	   (set-car! thing value)))
     (cdr (lambda (thing value)
-	   (rplacd thing value)))))
+	   (set-cdr! thing value)))))
 
 (define-macro (setf place value)
   (if (list? place)

@@ -38,13 +38,13 @@
     (and
      (= (cadr cons-cell) 2)
      (begin
-       (rplaca (cdr cons-cell) 4)
+       (set-car! (cdr cons-cell) 4)
        (= (cadr cons-cell) 4))
      (not (= (cadr cons-cell) 2))
      (= (cadr cons-cell) 4)
      (= (caddr cons-cell) 3)
      (begin
-       (rplacd cons-cell '(5 6))
+       (set-cdr! cons-cell '(5 6))
        (and (= (cadr cons-cell) 5)
 	    (= (caddr cons-cell) 6)))
      (= (cadr cons-cell) 5)

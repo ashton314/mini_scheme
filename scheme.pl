@@ -646,29 +646,29 @@ sub Special_forms {
 		    return $obj->{last};
 		},
 	    },
-	    rplaca => {
+	    'set-car!' => {
 		closure_env => {},
 		args        => ['obj', 'new-car'],
-		lambda_expr => 'rplaca',
+		lambda_expr => 'set-car!',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('obj', $env);
 		    unless (ref $cons eq 'Cons') {
-			error("$cons is not a Cons - rplaca\n");
+			error("$cons is not a Cons - set-car!\n");
 		    }
 		    $cons->{car} = find_var('new-car', $env);
 		    return $cons;
 		},
 	    },
-	    rplacd => {
+	    'set-cdr!' => {
 		closure_env => {},
 		args        => ['obj', 'new-cdr'],
-		lambda_expr => 'rplacd',
+		lambda_expr => 'set-cdr!',
 		body => sub {
 		    my $env = shift;
 		    my $cons = find_var('obj', $env);
 		    unless (ref $cons eq 'Cons') {
-			error("$cons is not a Cons - rplacd\n");
+			error("$cons is not a Cons - set-cdr!\n");
 		    }
 		    $cons->{cdr} = find_var('new-cdr', $env);
 		    return $cons;
