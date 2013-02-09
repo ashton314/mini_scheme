@@ -716,7 +716,6 @@ sub Special_forms {
 			print STDERR "          RESULT: $result\n";
 		    }
 		    return $result;
-		    
 		},
 	    },
 	    'null?' => {

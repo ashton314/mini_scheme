@@ -752,10 +752,20 @@ sub Special_forms {
 
 		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
 
+		    if ($TRACED_FUNCTIONS{$func->{lambda_expr}}) {
+			print STDERR "CALLING FUNCTION: @{[$func->{lambda_expr}]}\n";
+			print STDERR "            ARGS: @{ [map {to_string($_)} @$args] }\n";
+		    }
+
 		    my $bound = bind_vars($$func{args}, $args);
 		    my $nenv = merge_envs($$func{closure_env}, $bound);
 
-		    return $$func{body}->($nenv);
+		    my $result = $$func{body}->($nenv);
+
+		    if ($TRACED_FUNCTIONS{$func->{lambda_expr}}) {
+			print STDERR "          RESULT: $result\n";
+		    }
+		    return $result;
 		},
 	    },
 	    'null?' => {
