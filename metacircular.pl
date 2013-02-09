@@ -148,9 +148,8 @@ sub scheme_eval {
 
 		$MACROS{$macro} = {
 				   body => sub {
-				       my ($env, $args) = @_;
-				       my $nenv = merge_envs($env, $args);
-				       return scheme_eval(['begin', @expr], $env);
+				       my $env = shift;
+			       return scheme_eval(['begin', @expr], $env);
 				   },
 				   args => \@arg_list,
 				  };
@@ -165,8 +164,10 @@ sub scheme_eval {
 		shift @expr;
 		my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
 					: $_ } @expr;
+
 		my $arg_hash = bind_vars($macro_args, \@to_expand);
-		my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
+		my $macro_env = merge_envs(\%GLOBAL_ENV, $arg_hash);
+		my $expanded = $macro_body->($macro_env);
 		my $to_analyze =
 		  ref $expanded eq 'Cons' ? cons_to_array($expanded)
 		    : $expanded;
@@ -259,7 +260,9 @@ sub scheme_eval {
 		    print STDERR "CALLING FUNCTION: @{[$expression[0]]}\n";
 		    print STDERR "            ARGS: @{ [map {to_string($_)} @arg_vals_copy] }\n";
 		}
+
 		my $result = ref $func{body} eq 'CODE' ? $func{body}->($nenv) : scheme_eval($func{body}, $nenv);
+
 		if ($TRACED_FUNCTIONS{$expression[0]}) {
 		    print STDERR "          RESULT: $result\n";
 		}
@@ -404,7 +407,8 @@ sub bind_vars {
 	    last;
 	}
 	elsif ($val_length <= $i) {
-	    error("Too few args: got $val_length, expected at $sym_length.\n");
+	    print STDERR "Caller: @{ [caller] }\n";
+	    error("Too few args: got $val_length, expected at least $sym_length.\n");
 	}
 	else {
 	    $new_env{$$syms[$i]} = $$vals[$i];
@@ -508,7 +512,7 @@ sub Special_forms {
 	    'eq?' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => 'eq?',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -696,10 +700,23 @@ sub Special_forms {
 
 		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
 
+		    if ($TRACED_FUNCTIONS{$func->{lambda_expr}}) {
+			print STDERR "CALLING FUNCTION: @{[$func->{lambda_expr}]}\n";
+			print STDERR "            ARGS: @{ [map {to_string($_)} @$args] }\n";
+		    }
+
 		    my $bound = bind_vars($$func{args}, $args);
 		    my $nenv = merge_envs($$func{closure_env}, $bound);
 
-		    return $$func{body}->($nenv);
+		    my $result= ref $$func{body} eq 'CODE' ?
+		      $$func{body}->($nenv) :
+			scheme_eval($$func{body}, $nenv);
+		    
+		    if ($TRACED_FUNCTIONS{$func->{lambda_expr}}) {
+			print STDERR "          RESULT: $result\n";
+		    }
+		    return $result;
+		    
 		},
 	    },
 	    'null?' => {
@@ -720,7 +737,7 @@ sub Special_forms {
 	    '>' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '>',
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
@@ -735,7 +752,7 @@ sub Special_forms {
 	    '<' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '<',
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
@@ -750,7 +767,7 @@ sub Special_forms {
 	    '=' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '=',
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
@@ -769,7 +786,7 @@ sub Special_forms {
 	    '+' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '+',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -781,7 +798,7 @@ sub Special_forms {
 	    '-' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '-',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -799,7 +816,7 @@ sub Special_forms {
 	    '*' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '*',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -811,7 +828,7 @@ sub Special_forms {
 	    '/' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '/',
 		body => sub {
 		    my $env = shift;
 		    my $args =find_var('args', $env);
@@ -823,7 +840,7 @@ sub Special_forms {
 	    'mod' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => 'mod',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -835,7 +852,7 @@ sub Special_forms {
 	    'int' => {
 		closure_env => {},
 		args => ['n'],
-		lambda_expr => undef,
+		lambda_expr => 'int',
 		body => sub {
 		    my $env = shift;
 		    my $n = find_var('n', $env);
@@ -844,7 +861,7 @@ sub Special_forms {
 	    },
 	    'read' => {
 		args => ['stream'],
-		lambda_expr => undef,
+		lambda_expr => 'read',
 		body => sub {
 		    my $env = shift;
 		    my $stream = find_var('stream', $env);
@@ -868,7 +885,7 @@ sub Special_forms {
 	    },
             'time' => {
 		args => [],
-		lambda_expr => undef,
+		lambda_expr => 'time',
 		closure_env => {},
 		body => sub {
 		    my ($secs, $mili) = gettimeofday();
@@ -877,7 +894,7 @@ sub Special_forms {
 	    },
 	    load => {
 		args => ['file'],
-		lambda_expr => undef,
+		lambda_expr => 'load',
 		closure_env => \%GLOBAL_ENV,
 		body => sub {
 		    my $env = shift;
@@ -929,7 +946,7 @@ sub Special_forms {
 	    },
 	    'write' => {
 		args        => ['.', 'things'],
-		lambda_expr => undef,
+		lambda_expr => 'write',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -939,7 +956,7 @@ sub Special_forms {
 	    },
 	    'write-string' => {
 		args        => ['.', 'strings'],
-		lambda_expr => undef,
+		lambda_expr => 'write-string',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -951,7 +968,7 @@ sub Special_forms {
 	    },
 	    'write-string-err' => {
 		args        => ['.', 'strings'],
-		lambda_expr => undef,
+		lambda_expr => 'write-string-err',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -963,7 +980,7 @@ sub Special_forms {
 	    },
 	    'error' => {
 		args => ['error-string'],
-		lambda_expr => undef,
+		lambda_expr => 'error',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -974,7 +991,7 @@ sub Special_forms {
 	    'write-err' => {
 		closure_env => {},
 		args        => ['.', 'strings'],
-		lambda_expr => undef,
+		lambda_expr => 'write-err',
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
@@ -984,7 +1001,7 @@ sub Special_forms {
 	    'sleep' => {
 		closure_env => {},
 		args        => ['num'],
-		lambda_expr => undef,
+		lambda_expr => 'sleep',
 		body => sub {
 		    my $env = shift;
 		    my $secs = find_var('num', $env);
@@ -995,7 +1012,7 @@ sub Special_forms {
 	    terpri => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => undef,
+		lambda_expr => 'terpri',
 		body => sub {
 		    print "\n";
 		    return undef;
@@ -1004,7 +1021,7 @@ sub Special_forms {
 	    'terpri-err' => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => undef,
+		lambda_expr => 'terpri-err',
 		body => sub {
 		    print STDERR "\n";
 		    return undef;
@@ -1013,7 +1030,7 @@ sub Special_forms {
 	    fle => {
 		closure_env => {},
 		args => ['func'],
-		lambda_expr => undef,
+		lambda_expr => 'fle',
 		body => sub {
 		    my $env = shift;
 		    my $func = find_var('func', $env);
@@ -1024,7 +1041,7 @@ sub Special_forms {
 	    macroexpand => {
 		closure_env => {},
 		args => ['form'],
-		lambda_expr => undef,
+		lambda_expr => 'macroexpand',
 		body => sub {
 		    my $env = shift;
 		    my $form = find_var('form', $env);
@@ -1067,7 +1084,7 @@ sub Special_forms {
 	    gensym => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => undef,
+		lambda_expr => 'gensym',
 		body => sub {
 		    my $env = shift;
 		    my $sym = new_symbol();
@@ -1077,7 +1094,7 @@ sub Special_forms {
 	    env_symbols => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => [],
+		lambda_expr => 'env_symbols',
 		body => sub {
 		    my $env = shift;
 		    my @syms = keys %{ $$env{env} };
@@ -1087,7 +1104,7 @@ sub Special_forms {
 	    verbose => {
 		closure_env => {},
 		args        => ['symbol'],
-		lambda_expr => undef,
+		lambda_expr => 'verbose',
 		body => sub {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
 		},

@@ -564,7 +564,7 @@ sub Special_forms {
 	    'eq?' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => 'eq?',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -776,7 +776,7 @@ sub Special_forms {
 	    '>' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '>',
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
@@ -791,7 +791,7 @@ sub Special_forms {
 	    '<' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '<',
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
@@ -806,7 +806,7 @@ sub Special_forms {
 	    '=' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '=',
 		body => sub {
 		    my $env = shift;
 		    my @args = @{ cons_to_array(find_var('args', $env), 1) };
@@ -825,7 +825,7 @@ sub Special_forms {
 	    '+' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '+',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -837,7 +837,7 @@ sub Special_forms {
 	    '-' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '-',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -855,7 +855,7 @@ sub Special_forms {
 	    '*' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '*',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -867,7 +867,7 @@ sub Special_forms {
 	    '/' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => '/',
 		body => sub {
 		    my $env = shift;
 		    my $args =find_var('args', $env);
@@ -879,7 +879,7 @@ sub Special_forms {
 	    'mod' => {
 		closure_env => {},
 		args        => ['.', 'args'],
-		lambda_expr => undef,
+		lambda_expr => 'mod',
 		body => sub {
 		    my $env = shift;
 		    my $args = find_var('args', $env);
@@ -891,7 +891,7 @@ sub Special_forms {
 	    'int' => {
 		closure_env => {},
 		args => ['n'],
-		lambda_expr => undef,
+		lambda_expr => 'int',
 		body => sub {
 		    my $env = shift;
 		    my $n = find_var('n', $env);
@@ -900,7 +900,7 @@ sub Special_forms {
 	    },
 	    'read' => {
 		args => ['stream'],
-		lambda_expr => undef,
+		lambda_expr => 'read',
 		body => sub {
 		    my $env = shift;
 		    my $stream = find_var('stream', $env);
@@ -924,7 +924,7 @@ sub Special_forms {
 	    },
             'time' => {
 		args => [],
-		lambda_expr => undef,
+		lambda_expr => 'time',
 		closure_env => {},
 		body => sub {
 		    my ($secs, $mili) = gettimeofday();
@@ -933,7 +933,7 @@ sub Special_forms {
 	    },
 	    load => {
 		args => ['file'],
-		lambda_expr => undef,
+		lambda_expr => 'load',
 		closure_env => \%GLOBAL_ENV,
 		body => sub {
 		    my $env = shift;
@@ -984,7 +984,7 @@ sub Special_forms {
 	    },
 	    'write' => {
 		args        => ['.', 'things'],
-		lambda_expr => undef,
+		lambda_expr => 'write',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -994,7 +994,7 @@ sub Special_forms {
 	    },
 	    'write-string' => {
 		args        => ['.', 'strings'],
-		lambda_expr => undef,
+		lambda_expr => 'write-string',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -1006,7 +1006,7 @@ sub Special_forms {
 	    },
 	    'write-string-err' => {
 		args        => ['.', 'strings'],
-		lambda_expr => undef,
+		lambda_expr => 'write-string-err',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -1018,7 +1018,7 @@ sub Special_forms {
 	    },
 	    'error' => {
 		args => ['error-string'],
-		lambda_expr => undef,
+		lambda_expr => 'error',
 		closure_env => {},
 		body => sub {
 		    my $env = shift;
@@ -1029,7 +1029,7 @@ sub Special_forms {
 	    'write-err' => {
 		closure_env => {},
 		args        => ['.', 'strings'],
-		lambda_expr => undef,
+		lambda_expr => 'write-err',
 		body => sub {
 		    my $env = shift;
 		    my $obj = find_var('strings', $env);
@@ -1039,7 +1039,7 @@ sub Special_forms {
 	    'sleep' => {
 		closure_env => {},
 		args        => ['num'],
-		lambda_expr => undef,
+		lambda_expr => 'sleep',
 		body => sub {
 		    my $env = shift;
 		    my $secs = find_var('num', $env);
@@ -1050,7 +1050,7 @@ sub Special_forms {
 	    terpri => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => undef,
+		lambda_expr => 'terpri',
 		body => sub {
 		    print "\n";
 		    return undef;
@@ -1059,7 +1059,7 @@ sub Special_forms {
 	    'terpri-err' => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => undef,
+		lambda_expr => 'terpri-err',
 		body => sub {
 		    print STDERR "\n";
 		    return undef;
@@ -1068,7 +1068,7 @@ sub Special_forms {
 	    fle => {
 		closure_env => {},
 		args => ['func'],
-		lambda_expr => undef,
+		lambda_expr => 'fle',
 		body => sub {
 		    my $env = shift;
 		    my $func = find_var('func', $env);
@@ -1079,7 +1079,7 @@ sub Special_forms {
 	    macroexpand => {
 		closure_env => {},
 		args => ['form'],
-		lambda_expr => undef,
+		lambda_expr => 'macroexpand',
 		body => sub {
 		    my $env = shift;
 		    my $form = find_var('form', $env);
@@ -1122,7 +1122,7 @@ sub Special_forms {
 	    gensym => {
 		closure_env => {},
 		args        => [],
-		lambda_expr => undef,
+		lambda_expr => 'gensym',
 		body => sub {
 		    my $env = shift;
 		    my $sym = new_symbol();
@@ -1142,7 +1142,7 @@ sub Special_forms {
 	    verbose => {
 		closure_env => {},
 		args        => ['symbol'],
-		lambda_expr => undef,
+		lambda_expr => 'verbose',
 		body => sub {
 		    $ANALYZE_VERBOSE = ! $ANALYZE_VERBOSE;
 		},
