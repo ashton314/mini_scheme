@@ -177,8 +177,8 @@ sub scheme_eval {
 		my @expr = @{ $expr };
 		shift @expr; 	# Knock off that 'while'
 
-		my $cond = scheme_eval(shift @expr, $env);
-		my $body = scheme_eval(['begin', @expr], $env);
+		my $cond = shift @expr;
+		my $body = ['begin', @expr];
 		my $res = '#f';
 		my $condition = scheme_eval($cond, $env);
 		while ($condition ne '#f' && (ref $condition eq 'Cons' ? ! $condition->null : $condition ne 'nil')) {
@@ -393,6 +393,8 @@ sub to_string {
 sub bind_vars {
     my ($syms, $vals) = @_;
     my %new_env = ();
+
+#    print "Caller: @{ [caller] }\n";
 
     my $sym_length = scalar(@$syms) // 0;
     my $val_length = scalar(@$vals) // 0;
@@ -700,8 +702,11 @@ sub Special_forms {
 
 		    $args = cons_to_array($args, 1) if ref $args eq 'Cons';
 
-		    if ($TRACED_FUNCTIONS{$func->{lambda_expr}}) {
-			print STDERR "CALLING FUNCTION: @{[$func->{lambda_expr}]}\n";
+		    my $func_name = ref $$func{body} eq 'CODE' ?
+		      $func->{lambda_expr} : $func->{name};
+
+		    if ($TRACED_FUNCTIONS{$func_name}) {
+			print STDERR "CALLING FUNCTION: @{[$func_name]}\n";
 			print STDERR "            ARGS: @{ [map {to_string($_)} @$args] }\n";
 		    }
 
@@ -712,7 +717,7 @@ sub Special_forms {
 		      $$func{body}->($nenv) :
 			scheme_eval($$func{body}, $nenv);
 		    
-		    if ($TRACED_FUNCTIONS{$func->{lambda_expr}}) {
+		    if ($TRACED_FUNCTIONS{$func_name}) {
 			print STDERR "          RESULT: $result\n";
 		    }
 		    return $result;
@@ -1045,6 +1050,7 @@ sub Special_forms {
 		    my $env = shift;
 		    my $form = find_var('form', $env);
 		    my $form_ref = cons_to_array($form);
+
 		    if (exists $MACROS{$$form_ref[0]}) {
 			my %macro = %{ $MACROS{$$form_ref[0]} };
 			my ($macro_body, $macro_args) = map { $macro{$_} }
@@ -1053,8 +1059,10 @@ sub Special_forms {
 			shift @expr;
 			my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
 						  : $_ } @expr;
+
 			my $arg_hash = bind_vars($macro_args, \@to_expand);
-			return $macro_body->(\%GLOBAL_ENV, $arg_hash);
+			my $macro_env = merge_envs(\%GLOBAL_ENV, $arg_hash);
+			return $macro_body->($macro_env);
 		    }
 		},
 	    },
