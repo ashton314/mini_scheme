@@ -58,17 +58,42 @@ else {
 
 ## Memory statistics
 unless ($NO_STATS) {
-    print "Memory statistics:\n";
-    print "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
-    print `ps u | grep perl | grep -v grep`;
-    print "\n";
+    my $stream = \*STDIN;
+    if ($ECHO_FILE) {
+	my $fh;
+	eval { open $fh, '>>', $ECHO_FILE; };
+	if ($@) {
+	    warn "Error in echo file open: $!\n";
+	}
+	else {
+	    $stream = $fh;
+	}
+    }
+
+    print $stream "Memory statistics:\n";
+    print $stream "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+    print $stream `ps u | grep perl | grep -v grep`;
+    print $stream "\n";
 }
 
 END {
     unless ($NO_STATS) {
-	print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
-	print `ps u | grep perl | grep -v grep`;
-	print "\n";
+	my $stream = \*STDIN;
+	if ($ECHO_FILE) {
+	    my $fh;
+	    eval { open $fh, '>>', $ECHO_FILE; };
+	    if ($@) {
+		warn "Error in echo file open: $!\n";
+	    }
+	    else {
+		$stream = $fh;
+	    }
+	}
+
+	print $stream "Memory statistics:\n";
+	print $stream "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+	print $stream `ps u | grep perl | grep -v grep`;
+	print $stream "\n";
     }
 }
 
