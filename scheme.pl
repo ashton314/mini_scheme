@@ -22,10 +22,11 @@ use String;
 BEGIN { print STDERR "Done.\n"; }
 
 ## Options
-my ($NO_INIT, $QUIET, $NO_STATS) = (0, 0, 0);
-GetOptions('no-init'  => \$NO_INIT,   # Disable init file load
-	   quiet      => \$QUIET,     # Suppress load messages
-	   'no-stats' => \$NO_STATS); # Suppress memory statistics
+my ($NO_INIT, $QUIET, $NO_STATS, $ECHO_FILE) = (0, 0, 0, 0);
+GetOptions('no-init'     => \$NO_INIT,    # Disable init file load
+	   quiet         => \$QUIET,      # Suppress load messages
+	   'no-stats'    => \$NO_STATS,   # Suppress memory statistics
+	   'echo-file=s' => \$ECHO_FILE); # Echo memory statistics to a file
 
 ## Global vars
 my @FILES_LOADING    = ();
@@ -58,17 +59,42 @@ else {
 
 ## Memory statistics
 unless ($NO_STATS) {
-    print "Memory statistics:\n";
-    print "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
-    print `ps u | grep perl | grep -v grep`;
-    print "\n";
+    my $stream = \*STDIN;
+    if ($ECHO_FILE) {
+	my $fh;
+	eval { open $fh, '>>', $ECHO_FILE; };
+	if ($@) {
+	    warn "Error in echo file open: $!\n";
+	}
+	else {
+	    $stream = $fh;
+	}
+    }
+
+    print $stream "Memory statistics:\n";
+    print $stream "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+    print $stream `ps u | grep perl | grep -v grep`;
+    print $stream "\n";
 }
 
 END {
     unless ($NO_STATS) {
-	print "Memory statistics:\nUSER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
-	print `ps u | grep perl | grep -v grep`;
-	print "\n";
+	my $stream = \*STDIN;
+	if ($ECHO_FILE) {
+	    my $fh;
+	    eval { open $fh, '>>', $ECHO_FILE; };
+	    if ($@) {
+		warn "Error in echo file open: $!\n";
+	    }
+	    else {
+		$stream = $fh;
+	    }
+	}
+
+	print $stream "Memory statistics:\n";
+	print $stream "USER     PID \%CPU \%MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND\n";
+	print $stream `ps u | grep perl | grep -v grep`;
+	print $stream "\n";
     }
 }
 

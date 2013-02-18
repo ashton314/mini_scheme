@@ -6,11 +6,11 @@ Mini Scheme -- A science project
 
 Load syntactic analyzer implementation:
 
-  perl scheme.pl
+  perl scheme.pl [-quiet] [-no-init] [-no-stats] [-echo-file <filename>]
 
 Load metacircular evaluator implementation:
 
-  perl metacircular.pl
+  perl metacircular.pl [-quiet] [-no-init] [-no-stats]
 
 =head1 BACKGROUND
 
@@ -60,7 +60,7 @@ TODO: Write how a syntactic analyzer works.
 
 =head1 CONTROL FLAGS
 
-There are (so far) three command line options for this interpreter:
+There are (so far) four command line options for this interpreter:
 
 =over 4
 
@@ -75,6 +75,10 @@ When this flag is present, the init file in F<init.scm> is not loaded.
 =item no-stats
 
 When this flag present, memory statistics are suppressed.
+
+=item echo-file
+
+This takes a file name to output memory statistics.
 
 =back
 
@@ -167,6 +171,10 @@ speed gain out of this.
 =head1 BUGS
 
 =over 4
+
+=item *
+
+DOTimes is not working in the metacircular interpreter. Big problem.
 
 =item *
 
