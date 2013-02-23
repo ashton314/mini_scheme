@@ -59,7 +59,7 @@ else {
 
 ## Memory statistics
 unless ($NO_STATS) {
-    my $stream = \*STDIN;
+    my $stream = \*STDOUT;
     if ($ECHO_FILE) {
 	my $fh;
 	eval { open $fh, '>>', $ECHO_FILE; };
@@ -79,7 +79,7 @@ unless ($NO_STATS) {
 
 END {
     unless ($NO_STATS) {
-	my $stream = \*STDIN;
+	my $stream = \*STDOUT;
 	if ($ECHO_FILE) {
 	    my $fh;
 	    eval { open $fh, '>>', $ECHO_FILE; };
@@ -206,19 +206,7 @@ sub scheme_analyze {
 		return sub { return $macro; };
 	    }
 	    when (exists $MACROS{$_}) { # Macro expander
-		my %macro = %{ $MACROS{$_} };
-		my ($macro_body, $macro_args) = map { $macro{$_} }
-		  qw(body args);
-		my @expr = @{ $expr };
-		shift @expr;
-		my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
-					: $_ } @expr;
-		my $arg_hash = bind_vars($macro_args, \@to_expand);
-		my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
-		my $to_analyze =
-		  ref $expanded eq 'Cons' ? cons_to_array($expanded)
-		    : $expanded;
-		my $proc = scheme_analyze($to_analyze, $analyze_env);
+		my $proc = scheme_analyze(macro_expand($_, $expr), $analyze_env);
 		return sub {
 		    my $env = shift;
 		    return $proc->($env);
@@ -381,27 +369,20 @@ sub compile_var_lookup {
     };
 }
 
-## When I tested this, this seemed to have a negative effect on
-## execution speed.
-# sub compile_var_assignment {
-#     my ($var, $env, $value) = @_;
-#     my $frames = 0;
-#     while (defined $env) {
-# 	last unless defined($$env{env});
-# 	last if exists $$env{env}->{$var};
-# 	$frames++;
-# 	$env = $$env{parent_env};
-# 	return undef unless defined($env); # Dynamic variable lookup
-#     }
-#     return sub {
-# 	my $enviro = shift;
-# 	my $eval_enviro = $enviro;
-# 	for (1..$frames) {
-# 	    $enviro = $$enviro{parent_env};
-# 	}
-# 	return $$enviro{env}->{$var} = $value->($eval_enviro);
-#     };
-# }
+sub macro_expand {
+    my ($macro_name, $expr) = @_;
+    my %macro = %{ $MACROS{$macro_name} };
+    my ($macro_body, $macro_args) = map { $macro{$_} }
+      qw(body args);
+    my @expr = @{ $expr };
+    shift @expr;
+    my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
+			    : $_ } @expr;
+    my $arg_hash = bind_vars($macro_args, \@to_expand);
+    my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
+    return ref $expanded eq 'Cons' ? cons_to_array($expanded) : $expanded;
+
+}
 
 sub merge_iso_envs {
     # Takes an env hash, and an enviroment iso, and makes a new
@@ -1121,15 +1102,10 @@ sub Special_forms {
 		    my $form = find_var('form', $env);
 		    my $form_ref = cons_to_array($form);
 		    if (exists $MACROS{$$form_ref[0]}) {
-			my %macro = %{ $MACROS{$$form_ref[0]} };
-			my ($macro_body, $macro_args) = map { $macro{$_} }
-			qw(body args);
-			my @expr = @{ $form_ref };
-			shift @expr;
-			my @to_expand = map { ref $_ eq 'ARRAY' ? array_to_cons($_)
-						  : $_ } @expr;
-			my $arg_hash = bind_vars($macro_args, \@to_expand);
-			return $macro_body->(\%GLOBAL_ENV, $arg_hash);
+			return macro_expand($$form_ref[0], $form);
+		    }
+		    else {
+			error("Form $$form_ref[0] is not a macro.\n");
 		    }
 		},
 	    },
