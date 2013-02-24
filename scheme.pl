@@ -381,7 +381,6 @@ sub macro_expand {
     my $arg_hash = bind_vars($macro_args, \@to_expand);
     my $expanded = $macro_body->(\%GLOBAL_ENV, $arg_hash);
     return ref $expanded eq 'Cons' ? cons_to_array($expanded) : $expanded;
-
 }
 
 sub merge_iso_envs {
@@ -1102,7 +1101,7 @@ sub Special_forms {
 		    my $form = find_var('form', $env);
 		    my $form_ref = cons_to_array($form);
 		    if (exists $MACROS{$$form_ref[0]}) {
-			return macro_expand($$form_ref[0], $form);
+			return array_to_cons(macro_expand($$form_ref[0], $form_ref));
 		    }
 		    else {
 			error("Form $$form_ref[0] is not a macro.\n");
