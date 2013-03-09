@@ -22,10 +22,12 @@ use String;
 BEGIN { print STDERR "Done.\n"; }
 
 ## Options
-my ($NO_INIT, $QUIET, $NO_STATS, $ECHO_FILE) = (0, 0, 0, 0);
+my ($NO_INIT, $QUIET, $NO_STATS, $LOAD_FILE, $ECHO_FILE, $INIT_FILE) = (0, 0, 0, 0, 0, "init.scm");
 GetOptions('no-init'     => \$NO_INIT,    # Disable init file load
 	   quiet         => \$QUIET,      # Suppress load messages
 	   'no-stats'    => \$NO_STATS,   # Suppress memory statistics
+	   'init-file=s' => \$INIT_FILE,  # Specify alternate initilization file
+	   'load=s'      => \$LOAD_FILE,
 	   'echo-file=s' => \$ECHO_FILE); # Echo memory statistics to a file
 
 ## Global vars
@@ -45,7 +47,7 @@ if ($NO_INIT) {
 }
 else {
     my $init_fh;
-    if (open $init_fh, '<', 'init.scm') {
+    if (open $init_fh, '<', ($INIT_FILE || 'init.scm')) {
 	print STDERR "Loading init file..." unless $QUIET;
 	my $data = scheme_read_from_file($init_fh);
 	print STDERR "Done.\nParsing init file..." unless $QUIET;
@@ -54,6 +56,9 @@ else {
 	};
 	print STDERR "ERROR: $@" if $@;
 	print STDERR "Done.\n\n" unless $QUIET;
+    }
+    else {
+	print "Could not open $INIT_FILE: $!\n";
     }
 }
 
@@ -98,6 +103,11 @@ END {
     }
 }
 
+if ($LOAD_FILE) {
+    eval { scheme_eval(['load', ['string', $LOAD_FILE]], \%GLOBAL_ENV); };
+    print "\n";
+    print STDERR "Couldn't load $LOAD_FILE: $@\n" if $@;
+}
 
 REPL: {
     print "* ";

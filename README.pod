@@ -6,7 +6,7 @@ Mini Scheme -- A science project
 
 Load syntactic analyzer implementation:
 
-  perl scheme.pl [-quiet] [-no-init] [-no-stats] [-echo-file <filename>]
+  perl scheme.pl [-quiet] [-no-init] [-no-stats] [-echo-file <filename>] [-load <filename>] [-init-file <filename>]
 
 Load metacircular evaluator implementation:
 
@@ -60,8 +60,6 @@ TODO: Write how a syntactic analyzer works.
 
 =head1 CONTROL FLAGS
 
-There are (so far) four command line options for this interpreter:
-
 =over 4
 
 =item quiet
@@ -76,9 +74,17 @@ When this flag is present, the init file in F<init.scm> is not loaded.
 
 When this flag present, memory statistics are suppressed.
 
+=item load
+
+Takes a filename and loads it immediately after loading the L</init file> and printing the memory statistics.
+
 =item echo-file
 
 This takes a file name to output memory statistics.
+
+=item init-file
+
+Takes a alternate L</init file> to load. Default is F<init.scm> in the working directory.
 
 =back
 
@@ -127,6 +133,10 @@ Next to no error checking.
 =head1 FEATURES
 
 =over 4
+
+=item Init file
+
+The default init file is init.scm in the working directory. An alternate file may be specified with the L</-init-file> option.
 
 =item Lexical Addressing
 
