@@ -10,7 +10,7 @@ Load syntactic analyzer implementation:
 
 Load metacircular evaluator implementation:
 
-  perl metacircular.pl [-quiet] [-no-init] [-no-stats] [-echo-file <filename>]
+  perl metacircular.pl [-quiet] [-no-init] [-no-stats] [-echo-file <filename>] [-load <filename>] [-init-file <filename>]
 
 =head1 BACKGROUND
 
