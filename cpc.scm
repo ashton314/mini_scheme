@@ -9,7 +9,6 @@
 	 ('lambda (cpc-lambda sexpr env cont))
 	 ('if (cpc-if sexpr env cont))
 	 ('catch (cpc-catch sexpr env cont)))
-;	 ('labels (cpc-labels sexpr env cont)))
        (cond ((and (atom (car sexpr))
 		   (macro? (car sexpr)))
 	      (cpc (macroexpand sexpr) env cont)) ; Macro expand
@@ -107,17 +106,17 @@
 				   (cons (car x) z))))))))
 	  (loop1 sexpr nil nil)))
 
-(define-macro (mcp func)		; Make Contiuation Passing
-  `(define ,(implode (cons '@ (explode func)))
-     (lambda (arg1 &rest args)
-       (set! args (cons arg1 args))
-       (let ((cont (car (reverse args))))
-	 (cont (apply ,func (reverse (cdr (reverse args)))))))))
+;; (define-macro (mcp func)		; Make Contiuation Passing
+;;   `(define ,(implode (cons '@ (explode func)))
+;;      (lambda (arg1 &rest args)
+;;        (set! args (cons arg1 args))
+;;        (let ((cont (car (reverse args))))
+;; 	 (cont (apply ,func (reverse (cdr (reverse args)))))))))
 
-(define-macro (mcps . funcs)
-  `(begin ,@(map (lambda (func) `(mcp ,func)) funcs)))
+;; (define-macro (mcps . funcs)
+;;   `(begin ,@(map (lambda (func) `(mcp ,func)) funcs)))
 
-(mcps > < = + - * / mod eq?) ; quit car cdr last rplaca rplacd cons list
+;(mcps > < = + - * / mod eq?) ; quit car cdr last rplaca rplacd cons list
       ;; not number? macro? list? apply null? int read clear time load write
       ;; write-string write-string-err error write-err sleep terpri terpri-err
       ;; fle macroexpand implode explode gensym env_symbols verbose dumper trace)

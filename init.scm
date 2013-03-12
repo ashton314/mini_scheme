@@ -264,9 +264,10 @@
      (cond ,@(map (lambda (clause) `((eq? ,(car clause) _) (begin ,@(cdr clause)))) clauses))))
 
 (define-macro (labels forms . body)
+  ;; Behavior: This should work: (labels ((a (n) (+ n 1))) (a 5))
   `(let (,@(map (lambda (form) `(,(car form) nil)) forms))
      (begin
-       ,@(map (lambda (form) `(set! ,(car form) ,(cadr form))) forms))
+       ,@(map (lambda (form) `(set! ,(car form) (lambda ,@(cdr form)))) forms))
      (begin
        ,@body)))
 
