@@ -1,0 +1,82 @@
+                Metacircular										  Syntactic Analyzer
+%Time ExclSec CumulS #Calls sec/call Csec/c  Name					%Time ExclSec CumulS #Calls sec/call Csec/c  Name				   
+ 8.95   44.15 55.485 873854   0.0000 0.0000  main::bind_vars				 67.2   2.038  3.417 409612   0.0000 0.0000  main::__ANON__			   
+ 3.09   15.22 15.220 873854   0.0000 0.0000  main::merge_envs				 14.1   0.428  0.519  87665   0.0000 0.0000  main::bind_vars			   
+ 5.05   24.89 571.88 678194   0.0000 0.0001  main::__ANON__				 6.79   0.206  0.206  87665   0.0000 0.0000  main::merge_envs			   
+ 6.30   31.06 56.353 485374   0.0000 0.0000  Cons::array_to_cons			 5.28   0.160  0.160  77825   0.0000 0.0000  main::find_var			   
+ 13.1   64.71 64.713 341964   0.0000 0.0000  main::find_var				 4.55   0.138  0.158  77121   0.0000 0.0000  Reader::__ANON__			   
+ 48.3   238.6 574.05 299725   0.0000 0.0000  main::scheme_eval				 8.94   0.271  0.271  76430   0.0000 0.0000  Cons::cons_to_array		   
+ 0.09   0.427  0.427 202994   0.0000 0.0000  main::set_var				 1.25   0.038  0.038  43335   0.0000 0.0000  Cons::cons				   
+ 1.32   6.501 572.57 185253   0.0000 0.0031  main::macro_expand				 4.02   0.122  0.135  19022   0.0000 0.0000  Cons::array_to_cons		   
+ 10.0   49.48 49.481 158778   0.0000 0.0000  main::looks_like_number			 0.63   0.019  0.043   8097   0.0000 0.0000  Cons::mapcar			   
+ 13.5   66.73 66.737 138588   0.0000 0.0000  Cons::cons_to_array			 0.53   0.016  0.016   8088   0.0000 0.0000  Cons::cdr				   
+ 5.71   28.15 28.157 123444   0.0000 0.0000  Cons::cons					 1.48   0.045  0.045   7797   0.0000 0.0000  main::set_var			   
+ 0.44   2.194 45.031 108562   0.0000 0.0000  Cons::null					 0.16   0.005  0.168   5070   0.0000 0.0000  Reader::scheme_read		   
+ 0.10   0.514  0.781 105958   0.0000 0.0000  Cons::mapcar				 0.63   0.019  0.019   1414   0.0000 0.0000  main::looks_like_number		   
+ 0.25   1.233  1.233 101339   0.0000 0.0000  Cons::cdr					 0.30   0.009  0.009   1113   0.0000 0.0000  Config::_fix			   
+ 0.02   0.118  0.198  77121   0.0000 0.0000  Reader::__ANON__				 0.79   0.024  0.153    964   0.0000 0.0002  Reader::scheme_read_delimited_list	   
+ 0.01   0.065  0.198   5070   0.0000 0.0000  Reader::scheme_read			 0.33   0.010  3.422     87   0.0001 0.0393  main::scheme_eval			   
+ 0.00   0.014  0.203    964   0.0000 0.0002  Reader::scheme_read_delimited_list		 0.66   0.020  0.029     14   0.0014 0.0020  main::BEGIN			   
+ 0.00   0.010  0.010     23   0.0004 0.0004  Getopt::Long::BEGIN			 0.00   0.000  0.000      1   0.0000 0.0000  Config::launcher			   
+ 0.00   0.020  0.039     14   0.0014 0.0028  main::BEGIN				 0.00   0.000  0.000      1   0.0000 0.0000  Exporter::Heavy::heavy_export_to_level
+ 0.00   0.000  0.000      1   0.0000 0.0000  Config::launcher
+ 0.00   0.010  0.010      1   0.0100 0.0100  main::END
+
+
+- macroexpand() is called 185253 times in the metacircular interpreter.
+- bind_vars() is called 873854 times. It is called along with
+  macro_expand(). (- 873854 185253) => 688601.
+- bind_vars() is called 87665 times in the syntactic analyzer.
+  (- 688601 87665) => 600936.
+- Call times:
+  + Syntactic Analyzer
+    * scheme_eval() called 87 times
+    * scheme_analyze() called 3340 times
+    * (* 87 3340) => 290580
+  + Metacircular
+    * scheme_eval() called 299725 times
+
+Testing for memory consumption:
+
+Syntactic Analyzer:
+  Memory statistics:
+  USER     PID %CPU %MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND
+  ashton  7727   0.0  0.0  2437324   5112 s003  S+    8:19PM   0:00.08
+
+  Memory statistics:
+  USER     PID %CPU %  MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND
+  ashton  7717  73.6    0.1  2438348   8028 s003  S+    8:19PM   0:00.36
+
+  +---------+---------+---------+
+  |  Delta  |   VSZ   |   RSS   |
+  +---------+---------+---------+
+  |  Start  | 2437324 |  5112   |
+  +---------+---------+---------+
+  |   End   | 2438348 |  8028   |
+  +---------+---------+---------+
+  |  Delta  |  1024   |  2916   |
+  +---------+---------+---------+
+
+
+
+Metacircular:
+  Memory statistics:
+  USER     PID %CPU %MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND
+  ashton  7727   0.0  0.0  2437324   5112 s003  S+    8:19PM   0:00.08
+
+  USER     PID %CPU %MEM   VSZ   RSS  TT  STAT STARTED      TIME COMMAND
+  ashton  7727  91.1 24.5  5511568 3078212 s003  S+    8:19PM  50:06.42
+
+  +---------+---------+---------+
+  |  Delta  |   VSZ   |   RSS   |
+  +---------+---------+---------+
+  |  Start  | 2437324 |  5112   |
+  +---------+---------+---------+
+  |   End   | 5511568 | 3078212 |
+  +---------+---------+---------+
+  |  Delta  | 3074244 | 3073100 |
+  +---------+---------+---------+
+
+The metacircular evaluator consumed 1053 times the memory that the
+syntactic analyzer did.
+
