@@ -476,7 +476,7 @@ sub bind_vars {
 	    last;
 	}
 	elsif ($val_length <= $i) {
-	    error("Too few args: got $val_length, expected at $sym_length.\n");
+	    error("Too few args: got $val_length, expected $sym_length.\n");
 	}
 	else {
 	    $new_env{$$syms[$i]} = $$vals[$i];
