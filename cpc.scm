@@ -26,7 +26,7 @@
 
 (define (cpc-lambda sexpr env cont)
   (let ((cn (gensym)))
-    ((lambda (lx) (if cont `(,cont ,lx) lx))
+    ((lambda (lx) (if (and cont (not (null? cont))) `(,cont ,lx) lx))
      `(lambda (,@(cadr sexpr) ,cn)
 	,(cpc (caddr sexpr)
 	      (append (cadr sexpr) (cons cn env))
