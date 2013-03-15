@@ -8,11 +8,13 @@
 	 ('quote (if cont `(,cont ,sexpr) sexpr))
 	 ('lambda (cpc-lambda sexpr env cont))
 	 ('if (cpc-if sexpr env cont))
+	 ('begin (cpc-begin sexpr env cont))
 	 ('catch (cpc-catch sexpr env cont)))
-       (cond ((and (atom (car sexpr))
-		   (macro? (car sexpr)))
-	      (cpc (macroexpand sexpr) env cont)) ; Macro expand
-	     (t (cpc-form sexpr env cont))))))
+       (begin
+	 (if (and (atom (car sexpr))
+		  (macro? (car sexpr)))
+	     (cpc (macroexpand sexpr) env cont) ; Macro expand
+	     (cpc-form sexpr env cont))))))
 
 (define (cpc-atom sexpr env cont)
   ((lambda (at)
@@ -49,6 +51,17 @@
 		(gensym))))
        ,cont))
    (gensym)))
+
+;; (begin
+;;   (+ a b)
+;;   (+ c d))
+
+;; ((lambda (cnt) (+ a b) (cnt)) (lambda (cnt2) (+ c d) (cnt2)))
+
+(define (cpc-begin sexpr env cont)
+  (define (loop exprs)
+    (cpc (car exprs) env (if (cdr exprs) (loop (cdr exprs)) cont)))
+  (loop (reverse (cdr sexpr))))    
 
 (define (cpc-catch sexpr env cont)
   ((lambda (en)
