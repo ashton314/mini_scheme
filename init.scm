@@ -46,8 +46,15 @@
 	  (car lst)
 	  (find-if func (cdr lst)))))
 
+(define (match? func lst)
+  (if (null? lst)
+      #f
+      (if (func (car lst))
+	  #t
+	  (match? func (cdr lst)))))
+
 (define (map func . lsts)
-  (if (find-if null? lsts)
+  (if (match? null? lsts)
       nil
       (cons (apply func (foreach car lsts))
 	    (apply map (cons func (foreach cdr lsts))))))
@@ -105,7 +112,7 @@
 (define-macro (push what where)
   (list 'set! where (list 'cons what where)))
 
-;; ;;; Non-bootstrapping functions
+;;; Non-bootstrapping functions
 
 (define (write-ln . strings)
   (apply write-string strings)

@@ -214,7 +214,8 @@ sub scheme_eval {
 		my $tcl  = $$expr[2];
 		my $fcl  = defined($$expr[3]) ? $$expr[3] : 0;
 		my $test_val = scheme_eval($pred, $env);
-		if ((! defined($test_val)) || $test_val ne '#f') {
+		if (defined($test_val) && $test_val ne '#f'
+		    && $test_val ne 'nil') {
 		    return scheme_eval($tcl, $env);
 		}
 		else {

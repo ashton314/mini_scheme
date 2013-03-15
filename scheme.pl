@@ -247,7 +247,8 @@ sub scheme_analyze {
 		return sub {
 		    my $env = shift;
 		    my $test_val = $pred->($env);
-		    if ((! defined($test_val)) || $test_val ne '#f') {
+		    if (defined($test_val) && $test_val ne '#f'
+			&& $test_val ne 'nil') {
 			return $tcl->($env);
 		    }
 		    else {
