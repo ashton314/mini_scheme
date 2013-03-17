@@ -1135,6 +1135,18 @@ sub Special_forms {
 		    print "\n";
 		},
 	    },
+	    apropos => {
+		closure_env => {},
+		args        => ['sym'],
+		lambda_expr => 'apropos',
+		body => sub {
+		    my $env = shift;
+		    my $sym = find_var('sym', $env);
+		    map { print index($_, $sym) != -1 ? "$_\n" : "" }
+		      keys %{ $GLOBAL_ENV{env} };
+		    return undef;
+		},
+	    },
 	    dumper => {
 		closure_env => {},
 		args        => ['thing'],
