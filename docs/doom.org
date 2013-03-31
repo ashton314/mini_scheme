@@ -1,49 +1,49 @@
-* Meta
-  - Simple
-    + Moderate
-      * Complex/gory detail awesomeness
+* Quiz
+  - *Alex*
 
 * Intro
-  - SICP
-    - MIT intro book
+  - SICP                                -- *Ashton*
+    - MIT intro book                    -- *Ashton*
   - Program language called "Scheme"
-    - Music player analogy
-    + Show sample of code	# If they don't know
-  - Syntactic analyzers
-    # *Remember:* Distinguish that this is an engineering project
-    # *Remember:* There are two ways to write an interpeter
-    - "Organizer" of code
-    + Analyze time optimization of understanding the code.
-  - Efficiency of of this
-    - Loops
-    - One-time macro expansion
-
-* Requirements
-  - Spec file
-
-* Development & Prototype
-  - Perl 5, Git
-  - Write something that can pass the spec file
-    + Spec file same for two different ways of writing program
-
-* Improvements
-  - Macroexpansion
-    - Analogy           -- Alex
-    - Ramifications     -- Ashton
-  - Lexical Addressing
-    - Analogy           -- Ashton
-    - Ramifications     -- Alex
-  - Benchmarking        -- Alex
-    - Speed statistics
-  - Profiler            -- Ashton
-    - Streamlined the code
-
-* Conclusion
-  - 1000x faster
-  - Where we want to go:
-    - Optimizations applied everywhere
-    - Interpeted languages
-      + DSL's
-    - CPAN
-  - http://www.github.com/ashton314/mini_scheme/
-  - If out of time, engage in conversation about /Gödel, Escher, Bach/.
+    - Music player analogy              -- *Alex*
+    + Show sample of code
+  - Syntactic analyzers						 --\
+    # *Remember:* Distinguish that this is an engineering project  |
+    # *Remember:* There are two ways to write an interpeter	   | *Ashton*
+    - "Organizer" of code					   |
+    + Analyze time optimization of understanding the code.	   |
+  - Efficiency of of this					 --+
+    - Loops							   |
+    - One-time macro expansion					   | *Alex*
+								   |
+* Requirements							   |
+  - Spec file		       	  				 --/
+			 	       				 --\
+* Development & Prototype		       	       	       	   |
+  - Perl 5, Git							   |
+  - Write something that can pass the spec file			   |
+    + Spec file same for two different ways of writing program	   |
+								   | *Ashton*
+* Improvements							   |
+  - Macroexpansion						   |
+    - Analogy           -- Ashton				   |
+    - Ramifications     -- Ashton      	       	       	       	   |
+  - Lexical Addressing					       	 --+
+    - Analogy           -- Alex	       	       	       	       	   |
+    - Ramifications     -- Alex					   |
+  - Benchmarking        -- Alex					   |
+    - Speed statistics						 --+
+  - Profiler            -- Ashton				   |
+    - Streamlined the code					   |
+								 --/
+* Conclusion   	       	       	       	       	       	       	 --\
+  - 585.5x faster						   | *Alex*
+  - 1052x less memory  	       	       	       	       	       	   |
+  - Where we want to go:					 --+
+    - Optimizations applied everywhere				   |
+    - Interpeted languages					   |
+      + DSL's							   |
+    - CPAN							   | *Ashton*
+  - http://www.github.com/ashton314/mini_scheme/		   |
+								 --/
+Questions?
