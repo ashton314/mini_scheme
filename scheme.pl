@@ -182,7 +182,7 @@ sub scheme_analyze {
 			$to_call->($env);
 		    };
 		}
-		else {		# Var def
+		else {		# Variable definition
 		    $$analyze_env{env}->{$expr[1]} = 1;
 		    my $to_call = scheme_analyze(['set!', (shift @expression),
 						  ($expression[0] ? (shift @expression) : 'undef')],
